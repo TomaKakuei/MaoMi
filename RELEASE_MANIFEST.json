@@ -1,0 +1,18 @@
+{
+  "schema": "maomi.public_snapshot.v1",
+  "project": "MAOMi",
+  "version": "0.5.0.dev0",
+  "snapshot": "platform-20261017",
+  "report": "docs/TECHNICAL_REPORT.pdf",
+  "report_pages": 1,
+  "report_sections": [
+    "Speed",
+    "Extensibility",
+    "Connections and capabilities",
+    "What's next"
+  ],
+  "file_checksums": "MANIFEST.sha256",
+  "local_experimental_records_included": false,
+  "repository": "https://github.com/TomaKakuei/MaoMi",
+  "release_tag": "v0.5.0.dev0-platform-20261017"
+}

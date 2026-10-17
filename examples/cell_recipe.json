@@ -1,0 +1,13 @@
+{
+  "description": "World coordinates in micrometres; edit these cells without source photographs. Intended for the default 80.88 x 80.88 um field of view.",
+  "cells": [
+    {"center_um": [24, 30], "radii_um": [6, 4], "angle_deg": 25, "brightness": 1.0,
+     "nucleus_fraction": 0.5, "branch_width_um": 0.8,
+     "branches": [[[24, 30], [34, 37], [45, 32]], [[24, 30], [17, 23], [11, 25]]]},
+    {"center_um": [55, 52], "radii_um": [5, 7], "angle_deg": -20, "brightness": 0.8,
+     "nucleus_fraction": 0.3, "branch_width_um": 1.0,
+     "branches": [[[55, 52], [63, 61], [71, 62]]]},
+    {"center_um": [24, 60], "radii_um": [4, 4], "brightness": 1.2,
+     "nucleus_fraction": 0.6, "branches": []}
+  ]
+}
