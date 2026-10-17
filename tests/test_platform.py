@@ -1,5 +1,8 @@
 """Independent numerical contracts for the additive platform prototype."""
 import importlib.util
+import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 import unittest
@@ -67,6 +70,20 @@ class PlatformTests(unittest.TestCase):
         dark = noisy_measurement(np.zeros(20000), rng=np.random.default_rng(22), read_sigma_e=2.)
         self.assertTrue((dark < 0).any())
         self.assertLess(abs(dark.mean()), .05)
+
+    @unittest.skipUnless(importlib.util.find_spec('rayoptics'), 'optional RayOptics not installed')
+    def test_real_rayoptics_in_fresh_interpreter(self):
+        # Other tests must not hide first-use circular imports by preloading modules.
+        code = (
+            "from maomi.integrations.rayoptics import demo_lens, rayoptics_psf\n"
+            "psf = rayoptics_psf(demo_lens(), num_rays=17, fft_size=128)\n"
+            "assert psf.intensity.shape == (128, 128)\n"
+            "assert abs(psf.intensity.sum() - 1.) < 1e-12\n"
+        )
+        result = subprocess.run(
+            [sys.executable, '-c', code], capture_output=True, text=True,
+            timeout=60, env=dict(os.environ, MPLBACKEND='Agg'))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     @unittest.skipUnless(importlib.util.find_spec('rayoptics'), 'optional RayOptics not installed')
     def test_real_rayoptics_sampling_and_lens_change(self):

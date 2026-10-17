@@ -97,8 +97,9 @@ def demo_lens(*, wavelength_nm=550., entrance_pupil_mm=8., curvature_mm=50.):
 
     A demonstration optical prescription, not a fitted microscope objective.
     """
-    from rayoptics.optical.opticalmodel import OpticalModel
-    from rayoptics.raytr.opticalspec import PupilSpec, FieldSpec, WvlSpec
+    # RayOptics 0.9.5 needs its scripting entry point to initialize circular
+    # model/GUI imports in order. Keep this lazy so the dependency stays optional.
+    from rayoptics.environment import OpticalModel, PupilSpec, FieldSpec, WvlSpec
     if not np.isfinite([wavelength_nm, entrance_pupil_mm, curvature_mm]).all() or min(wavelength_nm, entrance_pupil_mm, curvature_mm) <= 0:
         raise ValueError("Lens parameters must be positive and finite")
     model = OpticalModel()
