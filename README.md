@@ -58,9 +58,15 @@ python -m pip install ".[optics,examples]"
 python examples/rayoptics_custom_psf.py --cells examples/cell_recipe.json --output artifacts/my_cells
 ```
 
+The `optics` extra pairs RayOptics 0.9.5 with `opticalglass>=1.1.0,<2`.
+OpticalGlass 2.x changed the API used by this RayOptics release. After updating
+an existing checkout, rerun `python -m pip install ".[optics,examples]"` to apply
+the compatible dependency constraint.
+
 For native CUDA propagation: install `.[cuda]`, then run
 `python -m maomi --scene scattering --output artifacts/scattering`.
 Requires Python 3.11+; use a CUDA-compatible PyTorch installation for GPU work.
+CI covers the CPU and RayOptics examples on Python 3.11 and 3.12, on Linux and Windows.
 
 Read the [PSF interface](docs/PSF_INTERFACE.md), [example guide](docs/PLATFORM_EXAMPLE.md),
 [API](docs/API.md) and [one-page report](docs/TECHNICAL_REPORT.pdf).
