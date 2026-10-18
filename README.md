@@ -2,6 +2,10 @@
 
 Faster simulation. Open optical interfaces. Ground truth from a constructed world.
 
+MAOMi builds on [NAOMi (Neural Anatomy and Optical Microscopy)](https://bitbucket.org/adamshch/naomi_sim/)
+by Song et al. (2021), extending its simulation framework with GPU acceleration,
+Python workflows and pluggable optics. See [citation and upstream credit](#citation-and-upstream-credit).
+
 ## 1. Speed
 
 **188.7× measured acceleration. 0.05219% final-image error.**
@@ -66,3 +70,30 @@ Read the [PSF interface](docs/PSF_INTERFACE.md), [example guide](docs/PLATFORM_E
 Extend to editable 3-D cells and dynamics, depth- and wavelength-dependent optics, more wave solvers and detectors. Fit morphology, fluorescence and instrument parameters to real references; generate paired ground truth for denoising and reconstruction, then validate on held-out experiments. The goal is a programmable ground-truth platform for instrument design and imaging models. Full 3-D customization, real-data calibration and model training are planned capabilities.
 
 MIT licensed. See [source attribution](THIRD_PARTY_NOTICES.md).
+
+## Citation and upstream credit
+
+Please cite the original NAOMi paper when using MAOMi in research:
+
+> Song, A., Gauthier, J. L., Pillow, J. W., Tank, D. W., & Charles, A. S. (2021).
+> Neural anatomy and optical microscopy (NAOMi) simulation for evaluating calcium imaging methods.
+> *Journal of Neuroscience Methods*, **358**, 109173.
+> [doi:10.1016/j.jneumeth.2021.109173](https://doi.org/10.1016/j.jneumeth.2021.109173)
+
+```bibtex
+@article{song2021naomi,
+  author  = {Song, Alexander and Gauthier, Jeff L. and Pillow, Jonathan W. and Tank, David W. and Charles, Adam S.},
+  title   = {Neural anatomy and optical microscopy ({NAOMi}) simulation for evaluating calcium imaging methods},
+  journal = {Journal of Neuroscience Methods},
+  volume  = {358},
+  pages   = {109173},
+  year    = {2021},
+  doi     = {10.1016/j.jneumeth.2021.109173}
+}
+```
+
+Original MATLAB implementation: [NAOMi-Sim](https://bitbucket.org/adamshch/naomi_sim/).
+To identify the MAOMi implementation used, also report
+[this repository](https://github.com/TomaKakuei/MaoMi) and its release tag or commit.
+Upstream notices and licensing are retained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+and [LICENSES/NAOMi-MIT.txt](LICENSES/NAOMi-MIT.txt).
