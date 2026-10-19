@@ -1,4 +1,4 @@
-# MAOMi
+# MaoMi
 
 Faster simulation. Open optical interfaces. Ground truth from a constructed world.
 
