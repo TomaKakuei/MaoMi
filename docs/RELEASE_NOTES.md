@@ -1,14 +1,23 @@
-# MAOMi 0.5.0.dev0 — speed and open optical interfaces
+# MaoMi 0.7.0.dev0 — RANA
 
-- **188.7× measured optical-stage acceleration:** original MATLAB at 4225 sites,
-  85.303 s; MAOMi CUDA at 1024 sites, 0.452 s. Final-image relative L2 is 0.05219%
-  on the matched tissue/scattering case. Timing scope is in the one-page report.
-- Open PSF providers, physical sampling contracts and spatially varying 2-D
-  image formation; RayOptics, scalar-wave and procedural-cell examples.
-- A MATLAB-referenced native 3-D engine with CUDA propagation and movie APIs.
-- A one-page English overview covering speed, extensibility (including Julia),
-  connections and future capabilities.
+- **RANA — Ray Aware Nonuniform Acquisition:** explicit `--mode rana`,
+  theoretically higher accuracy through full local PSFs and four physics extensions.
+- Depth PSF banks with layered refractive-index / coverglass aberration and
+  positive depth interpolation; correct source/scan position selection.
+- High-NA vectorial Richards–Wolf optics, Jones polarization, longitudinal
+  electric field and s/p interface transmission.
+- Finite source-voxel and arbitrary weighted scan-dwell quadrature.
+- Coherent spectral pulse integration, dispersion, wavelength-dependent
+  diffraction and incoherent emission/collection response.
+- The same pixel-cat head, now named Rana, with an independent optional window.
+- Full-volume numerical convergence, individual ablations and serial timing:
+  [RANA comparison](RANA_COMPARISON.md).
+- Standard mode defaults to MATLAB v4 assembly and 65x65 propagation sites.
+  Its existing 512x512x60 comparison retains 49.1x optical-stage acceleration
+  and 0.00667% image difference from MATLAB.
+- Existing native tissue/activity/movie interfaces, basic PSF adapters and
+  RayOptics 0.9.5 / OpticalGlass <2 compatibility remain available.
 
-This is a development prerelease. The public source includes runtime code,
-self-contained tests and runnable examples. Local experiments, stored result
-arrays, logs, archived references and development backups are excluded.
+Source ZIP and wheel contain runnable code, tests, examples and public docs.
+Local run logs, volume arrays, private backups and the original cat photograph
+are excluded. The compact comparison table and figure are public results.

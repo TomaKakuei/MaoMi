@@ -40,6 +40,25 @@ specimen positions and resamples them onto a common intensity grid. A full
 [contract, equation and runnable examples](PSF_INTERFACE.md) explains source
 weighting, physical sampling, boundary behavior and the 2-D scope.
 
+## RANA Mode API
+
+`maomi.simulate(volume, mode="standard", config=cfg, ...)` selects native
+MATLAB-compatible MaoMi. `simulate(volume, mode="rana", psf_field=field,
+voxel_size_um=..., device="cpu", status_window=True)` selects the theoretically
+higher-accuracy custom full-field route. Rana returns `image`, `mode`,
+`settings`, `validation`, `timing_seconds`, `simulation_seconds`, `total_seconds`
+and `status_window`. GUI startup is timed separately. Disable the cat with
+`status_window=False`; headless execution uses the same numerical operator.
+See [mode selection, desktop behavior and four physics extensions](RANA_MODE.md).
+
+
+`maomi.FullFieldPSF` carries non-normalized effective XY or XYZ kernels on a
+complete XY field. `maomi.CubicFullFieldRenderer(field, shape,
+voxel_size_um=..., origin_um=(0,0), device="cpu")` interpolates whole local
+kernels and renders on CPU or CUDA. An explicit detection/excitation operator,
+full-FOV coverage and physical kernels are required. No shared-PSF fallback.
+See [contracts, equations and runnable example](ENHANCED_PSF.md).
+
 ## Existing anatomy, optics and movie API
 
 All spatial arrays use X,Y,Z; movies use X,Y,time. Sparse tissue component indices
@@ -75,13 +94,21 @@ Beams are propagated separately. `beam_weights` weights detected intensities;
 it is not an incident-field amplitude or a nonlinear laser-power fraction.
 Each pupil is normalized by the propagator. Motion is shared between beams and
 noise/bleed are applied once to the combined frame. Dual output has `channels`,
-`beam_weights`, `image`, `unique_optical_positions=1024` and
-`unique_optical_paths=2048`. Single-beam outputs retain the v3 public contract.
+`beam_weights`, `image`, `unique_optical_positions=4225` and
+`unique_optical_paths=8450` at the default 65x65 grid. Single-beam outputs retain the v3 public contract.
 
 `make_pupil` supports Gaussian, cylindrical and four Bessel amplitude profiles.
 `make_vtwins_pupils(kind="bessel")` returns two fields; `clip_to_objective=True`
 reproduces the original default-profile aperture, while false exposes the
 original explicit-profile branch's omitted clipping.
+
+`run_fixed(..., count_per_axis=65, mask_mode="matlab_v4")` defaults to 4225
+sites, MATLAB v4 masks, and arithmetic PSF averaging. Smaller grids, such as
+`count_per_axis=32`, remain explicit choices with scene-dependent accuracy.
+The supersampled lattice must support the selected count; no automatic reduction.
+`mask_mode="cubic"` is rejected at this public entry. The old low-level
+`assemble(..., mask_mode="cubic")` is retained only for legacy diagnostics and
+is not the enhanced route.
 
 `run_fixed` returns a focal static Z-stack and top/bottom optical descriptors.
 Use `scan_volume` or `iter_scan_volume` to include dynamic out-of-focus activity.
@@ -92,3 +119,26 @@ The top-level package keeps `OpticalConfig`, `run_fixed` and `zstack`.
 The private former `maomi_v2` backend is now `maomi.backends.cuda`;
 the duplicate legacy propagation entry points are retired. Public activity,
 tissue, scanning and analysis modules remain available.
+
+
+## RANA physics and depth banks
+
+`simulate(volume, mode="rana", config=RanaConfig(...), z_origin_um=...,
+device="cpu"|"cuda", status_window=True)` builds and renders a complete PSF bank.
+Alternatively pass `psf_field=FullFieldPSF|DepthPSFBank` with explicit
+`voxel_size_um`. `config` and `psf_field` are mutually exclusive.
+
+- `VectorialOptics`: complex vector field, polarization, Fresnel interfaces,
+  custom pupil amplitude/OPD and radial/azimuth quadrature.
+- `StratifiedMedium`: immersion/specimen/glass indices and actual/design glass.
+- `Acquisition`: source-voxel quadrature and arbitrary weighted scan offsets;
+  `Acquisition.line` constructs a line-dwell quadrature.
+- `PulseSpectrum`: coherent wavelength-resolved fields and temporal integration
+  at fixed input fluence; fs FWHM and fs² GDD.
+- `EmissionResponse`: incoherent photon spectrum and collection/detector QE.
+- `DepthPSFBank.save/load`: portable complete-field NPZ with model provenance.
+- `DepthFullFieldRenderer`: cubic XY, positive linear depth, CPU/CUDA operators.
+
+Returned timing fields separate `status_start`, `optics`, `preparation` and
+`render`; `simulation_seconds` includes the last three, excluding the indicator.
+See [runnable mode guide](RANA_MODE.md) and [equations/units](RANA_PHYSICS.md).

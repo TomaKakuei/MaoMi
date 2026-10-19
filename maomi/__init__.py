@@ -1,9 +1,9 @@
-"""MAOMi: fixed-grid optical propagation and static imaging derived from NAOMi."""
+"""MaoMi: Modular anatomy and optics for Microscopy, building on NAOMi."""
 
 from .scanning import zstack
 from .optics import OpticalConfig
 
-__version__ = "0.5.0.dev0"
+__version__ = "0.7.0.dev0"
 
 
 def run_fixed(*args, **kwargs):
@@ -14,3 +14,8 @@ def run_fixed(*args, **kwargs):
 
 
 from .pupils import make_pupil, make_vtwins_pupils
+from .enhanced import FullFieldPSF, CubicFullFieldRenderer
+from .runtime import simulate
+from .rana import RanaConfig
+from .rana_depth import DepthPSFBank, DepthFullFieldRenderer
+from .rana_optics import VectorialOptics, StratifiedMedium, Acquisition, PulseSpectrum, EmissionResponse

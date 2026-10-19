@@ -1,8 +1,8 @@
 {
   "schema": "maomi.public_snapshot.v1",
-  "project": "MAOMi",
-  "version": "0.5.0.dev0",
-  "snapshot": "platform-20261017",
+  "project": "MaoMi",
+  "version": "0.7.0.dev0",
+  "snapshot": "rana-20261019",
   "report": "docs/TECHNICAL_REPORT.pdf",
   "report_pages": 1,
   "report_sections": [
@@ -14,5 +14,10 @@
   "file_checksums": "MANIFEST.sha256",
   "local_experimental_records_included": false,
   "repository": "https://github.com/TomaKakuei/MaoMi",
-  "release_tag": "v0.5.0.dev0-platform-20261017"
+  "routes": [
+    "standard: MATLAB-compatible native",
+    "rana: theoretically higher-accuracy full-field optics"
+  ],
+  "mode_expansion": "RANA - Ray Aware Nonuniform Acquisition",
+  "public_comparison": "docs/RANA_COMPARISON.md"
 }

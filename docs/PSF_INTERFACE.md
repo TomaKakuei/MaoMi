@@ -1,9 +1,15 @@
 # Open PSF interfaces and spatially varying image formation
 
-MAOMi separates three responsibilities: an optical provider generates kernels;
+MaoMi separates three responsibilities: an optical provider generates kernels;
 `maomi.psf` carries sampled physical data; `maomi.imaging` forms images. Exposure,
 background and detector noise remain in `maomi.synthetic`. Providers need no
 registration, inheritance or dependency on the renderer.
+
+The APIs below describe the **basic bilinear detection renderer**. For strict
+full-field cubic imaging, including raster two-photon excitation and 3-D offset
+kernels, use [RANA Mode](ENHANCED_PSF.md). The contracts intentionally differ:
+basic fields permit edge extension and unit-sum shapes; Rana requires full
+coverage and retains local gain.
 
 ## Choose the smallest interface you need
 
@@ -54,7 +60,7 @@ python tools/verify_psf_field.py --folder artifacts/spatial_psf
 For real RayOptics wavefront traces at three object heights:
 
 ```sh
-python -m pip install "rayoptics==0.9.5"
+python -m pip install ".[optics]"
 python examples/rayoptics_field.py --output artifacts/rayoptics_field.npz
 ```
 
@@ -76,14 +82,13 @@ Use `SampledPSF.normalized` to explicitly normalize an array. A third-party solv
 may return a different axis order, sampling or amplitude convention; its adapter
 must convert those deliberately. `resample_psf` uses linear intensity interpolation,
 zero support extension and explicit renormalization, and records its mass estimate
-before normalization. This approximation is not covered by a universal optical
-accuracy guarantee. Complex amplitudes must be converted to intensity only where
+before normalization. Use the recorded sampling and retained support when selecting a target grid. Complex amplitudes must be converted to intensity only where
 that conversion matches the intended incoherent measurement model.
 
 ## Position-dependent imaging, not output blending
 
 For source position `s` and detector position `r`, the field defines `h(r-s; s)`.
-MAOMi interpolates the local kernels bilinearly at **source positions**:
+MaoMi interpolates the local kernels bilinearly at **source positions**:
 
 ```text
 h(displacement; source) = sum_k w_k(source) h_k(displacement)
@@ -94,7 +99,7 @@ Weights are nonnegative and sum to one. Nearest-edge extension is used outside
 the supplied field grid; a singleton axis is constant. `origin_um=(0, 0)` denotes
 the lower edge of the first pixel; its center is at half the pixel pitch.
 Convolution uses zero padding, so light can leave the field of view. Even and odd
-kernel origins follow the existing MAOMi/MATLAB convention.
+kernel origins follow the existing MaoMi/MATLAB convention.
 
 Kernel FFTs are cached in an explicit reusable renderer. Each frame performs one
 forward transform per active local kernel and **one inverse transform total**.

@@ -1,85 +1,111 @@
-# MAOMi
+# MaoMi
 
-Faster simulation. Open optical interfaces. Ground truth from a constructed world.
+<img src="maomi/assets/rana_cat.png" alt="Rana pixel cat" width="96" align="right">
 
-MAOMi builds on [NAOMi (Neural Anatomy and Optical Microscopy)](https://bitbucket.org/adamshch/naomi_sim/)
-by Song et al. (2021), extending its simulation framework with GPU acceleration,
-Python workflows and pluggable optics. See [citation and upstream credit](#citation-and-upstream-credit).
+**Modular anatomy and optics for Microscopy.** Faster simulation, open optics, programmable ground truth.
+
+MaoMi = **M**odular **a**natomy and **o**ptics for **Mi**croscopy (猫咪, “kitty”).
+
+**Standard MaoMi + RANA — Ray Aware Nonuniform Acquisition.**
+RANA: **theoretically higher accuracy（理论上精度更高）**.
+
+Built on **NAOMi (Neural Anatomy and Optical Microscopy)** by Song et al. (2021).
+See [citation and upstream credit](#citation-and-upstream-credit).
 
 ## 1. Speed
 
-**188.7× measured acceleration. 0.05219% final-image error.**
+**49.1× measured optical-stage acceleration. 0.00667% image difference from MATLAB.**
 
 | Implementation | Propagation sites | Optical-stage time |
 | --- | --- | --- |
-| Original MATLAB CPU | 4225 | 85.303 s |
-| MAOMi CUDA | 1024 | 0.452 s |
+| Original MATLAB CPU | 4225 | 179.644 s |
+| MaoMi Standard CUDA | 4225 | 3.662 s |
 
 
-Same tissue/scattering input and MATLAB pupil; full-image relative L2 error 0.05219%, below 0.2%. Median of three subsequent calls on Ryzen 9 7950X / RTX 3080. Optical stage includes phase preparation, propagation, both tails and mask assembly; input/pupil generation, static scanning, I/O and startup excluded. Measured 17 October 2026.
+Same 512 x 512 x 60 tissue, scattering input, pupil and 4225 sites. Full-volume relative L2: 0.00667%. Three serial calls, median; Ryzen 9 7950X / RTX 3080, CUDA batch 8. Optical stage includes phase preparation, propagation, both tails and mask assembly; input generation, static scanning, startup and I/O excluded. Standard-mode comparison, measured 19 October 2026 UTC.
 
 ## 2. Extensibility
 
-MAOMi combines MATLAB-referenced tissue, activity, scattering and movie workflows with replaceable optical providers. Physical PSF data and image formation have separate interfaces: change the optics without rewriting the renderer. External-PSF workflows run on CPU; fresh native tissue propagation uses CUDA.
+Two explicit modes: standard MaoMi preserves MATLAB v4 assembly and native CUDA workflows. RANA (Ray Aware Nonuniform Acquisition) retains each position's full PSF shape and gain with cubic XY interpolation and depth-dependent PSF banks.
 
-| Area | MAOMi | NAOMi.jl |
+**RANA: theoretically higher accuracy through four implemented extensions: refractive-index/depth aberration, high-NA vectorial optics, finite-voxel/scan integration and coherent pulse/spectral response.**
+
+| Area | MaoMi | NAOMi.jl |
 | --- | --- | --- |
-| Execution | Batched CUDA propagation and fused kernels. | CPU / FFTW implementation. |
-| Tissue optics | Scattering propagation and multiple excitation modes. | Cortical driver deferred; example uses a Gaussian PSF. |
+| Execution | Batched CUDA propagation | CPU / FFTW |
+| Native tissue optics | Scattering and multiple excitation modes | Cortical driver deferred; Gaussian example |
 
 
-Julia comparison: [pinned snapshot, 17 May 2026](https://github.com/JuliaNeuroscience/NAOMi.jl/tree/b657ac7cd1416af0274a25a3c230b21429da4d7f);
-[execution dependencies](https://github.com/JuliaNeuroscience/NAOMi.jl/blob/b657ac7cd1416af0274a25a3c230b21429da4d7f/Project.toml), [optical driver](https://github.com/JuliaNeuroscience/NAOMi.jl/blob/b657ac7cd1416af0274a25a3c230b21429da4d7f/src/optics/propagation.jl). Source comparison only; no Julia speed benchmark.
+Julia: [pinned snapshot, 17 May 2026](https://github.com/JuliaNeuroscience/NAOMi.jl/tree/b657ac7cd1416af0274a25a3c230b21429da4d7f); source comparison, with no Julia timing claim.
 
 ## 3. Connections and capabilities
 
 | Connection | Available now |
 | --- | --- |
-| RayOptics | Working adapter: lens and wavefront traces become custom PSFs or local PSF fields. |
-| Wave optics / measured PSFs | Callable and NPZ inputs accept sampled intensity kernels with explicit units and sampling. |
-| Procedural cells / Python | Editable 2-D cells produce clean/noisy pairs, latent cell maps, seeds and scene-disjoint splits. |
+| RayOptics / wave solvers | Sampled local PSFs, pupil OPD/amplitude callbacks and portable field banks. |
+| RANA physics | Layered vector fields, polarization, voxel/scan dwell, dispersion and spectra. |
+| Cells and paired data | Editable cells, clean/noisy pairs, latent density, seeds and scene splits. |
 
 
-The external PSF renderer currently forms 2-D intensity images; the native 3-D tissue route remains separate.
+RANA 256 x 256 x 16 control: 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.
+
+See [RANA mode](docs/RANA_MODE.md), [physics and units](docs/RANA_PHYSICS.md),
+[comparison and individual ablations](docs/RANA_COMPARISON.md), [PSF interfaces](docs/PSF_INTERFACE.md) and [API](docs/API.md).
 
 
-Run the CPU example:
+Choose your mode explicitly:
+
+| Mode | Purpose | Desktop |
+| --- | --- | --- |
+| `standard` (default) | MATLAB compatibility and native CUDA speed | Normal execution |
+| `rana` | **Theoretically higher accuracy** with full-field optics and four physics extensions | Optional rotating pixel-cat indicator |
 
 ```sh
 python -m pip install ".[examples]"
-python examples/spatial_psf.py --output artifacts/spatial_psf
-python tools/verify_psf_field.py --folder artifacts/spatial_psf
+# RANA: self-contained example with all four extensions, CPU optics/rendering
+python -m maomi --mode rana --physics-demo --output artifacts/rana
+# RANA: external full-field PSFs or depth banks, CUDA rendering
+python -m maomi --mode rana --psf-field bank.npz --volume density.npy --device cuda --output artifacts/custom
+# Standard MaoMi: CUDA-enabled PyTorch plus the cuda extra
+python -m pip install ".[cuda]"
+python -m maomi --mode standard --scene scattering --output artifacts/standard
 ```
 
-For RayOptics and editable cells:
+The small Rana window uses the owner's original pixel-cat head and displays
+**MaoMi-Rana is working in background**. Closing it hides only the indicator;
+calculation continues. Use `--no-status-window` to disable it. Servers and CI
+run headlessly. Linux desktop users may need matching `python3-tk` or Conda `tk`.
+
+Python: `simulate(volume, mode="rana", config=RanaConfig(...), z_origin_um=...)`
+or `simulate(volume, mode="standard", config=OpticalConfig(...))`.
+Custom fields retain their local shapes and gains throughout image formation.
+
+RayOptics and paired-data examples:
 
 ```sh
 python -m pip install ".[optics,examples]"
 python examples/rayoptics_custom_psf.py --cells examples/cell_recipe.json --output artifacts/my_cells
+python examples/enhanced_full_field.py --no-status-window --output artifacts/paired_data
+python examples/rana_comparison.py --device cuda --output artifacts/comparison
 ```
 
-The `optics` extra pairs RayOptics 0.9.5 with `opticalglass>=1.1.0,<2`.
-OpticalGlass 2.x changed the API used by this RayOptics release. After updating
-an existing checkout, rerun `python -m pip install ".[optics,examples]"` to apply
-the compatible dependency constraint.
+Python 3.11+; Windows/Linux CPU CI covers 3.11 and 3.12. The optics extra pins
+RayOptics 0.9.5 with `opticalglass>=1.1,<2`. Standard mode defaults to 65×65
+sites and `matlab_v4` assembly. Existing basic PSF and native movie APIs remain.
 
-For native CUDA propagation: install `.[cuda]`, then run
-`python -m maomi --scene scattering --output artifacts/scattering`.
-Requires Python 3.11+; use a CUDA-compatible PyTorch installation for GPU work.
-CI covers the CPU and RayOptics examples on Python 3.11 and 3.12, on Linux and Windows.
-
-Read the [PSF interface](docs/PSF_INTERFACE.md), [example guide](docs/PLATFORM_EXAMPLE.md),
-[API](docs/API.md) and [one-page report](docs/TECHNICAL_REPORT.pdf).
+Read the [one-page overview](docs/TECHNICAL_REPORT.pdf) and [release notes](docs/RELEASE_NOTES.md).
 
 ## 4. What's next
 
-Extend to editable 3-D cells and dynamics, depth- and wavelength-dependent optics, more wave solvers and detectors. Fit morphology, fluorescence and instrument parameters to real references; generate paired ground truth for denoising and reconstruction, then validate on held-out experiments. The goal is a programmable ground-truth platform for instrument design and imaging models. Full 3-D customization, real-data calibration and model training are planned capabilities.
+Extend editable 3-D cells and dynamics, calibrate optical/tissue parameters against real data, and generate paired ground truth for denoising and reconstruction. Add optical providers and acquisition models through the same Python interfaces.
+
+Built on [NAOMi, Song et al. (2021)](https://doi.org/10.1016/j.jneumeth.2021.109173).
 
 MIT licensed. See [source attribution](THIRD_PARTY_NOTICES.md).
 
 ## Citation and upstream credit
 
-Please cite the original NAOMi paper when using MAOMi in research:
+Please cite the original NAOMi paper when using MaoMi in research:
 
 > Song, A., Gauthier, J. L., Pillow, J. W., Tank, D. W., & Charles, A. S. (2021).
 > Neural anatomy and optical microscopy (NAOMi) simulation for evaluating calcium imaging methods.
@@ -99,7 +125,7 @@ Please cite the original NAOMi paper when using MAOMi in research:
 ```
 
 Original MATLAB implementation: [NAOMi-Sim](https://bitbucket.org/adamshch/naomi_sim/).
-To identify the MAOMi implementation used, also report
+To identify the MaoMi implementation used, also report
 [this repository](https://github.com/TomaKakuei/MaoMi) and its release tag or commit.
 Upstream notices and licensing are retained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 and [LICENSES/NAOMi-MIT.txt](LICENSES/NAOMi-MIT.txt).

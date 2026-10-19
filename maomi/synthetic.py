@@ -62,7 +62,7 @@ def procedural_cells(shape, pixel_size_um, cells):
 
 def expected_measurement(density, psf, *, pixel_size_um, photons_per_unit=32., background_e=2.,
                          origin_um=(0., 0.)):
-    """MAOMi convolution followed by an explicit photon-budget calibration.
+    """MaoMi convolution followed by an explicit photon-budget calibration.
 
     Despite the convenient photons_per_unit name, the budget is *detected*
     photoelectrons per unit density; throughput and quantum efficiency must be

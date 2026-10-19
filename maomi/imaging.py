@@ -26,7 +26,7 @@ class PSFRenderer:
     """Compile kernel FFTs once and reuse across frames of the same shape.
 
     CPU float64; zero padding; crop origin at kernel.shape // 2, including even
-    kernels (the existing MAOMi/MATLAB convention). origin_um is the lower edge
+    kernels (the existing MaoMi/MATLAB convention). origin_um is the lower edge
     of pixel (0,0); centers add half a pitch. Boundary light may leave the image.
     Memory scales with active field nodes times padded image size.
     """

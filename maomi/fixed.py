@@ -1,4 +1,4 @@
-"""Fixed 32 x 32 optical locations, with explicit full/focal-only outputs."""
+"""MATLAB-compatible native optics, with explicit full/focal-only outputs."""
 
 import time
 from functools import lru_cache
@@ -12,20 +12,23 @@ from .numerics import v4_interpolate
 from .scanning import zstack
 
 
-def fixed_locations(config):
-    """Exactly 1024 unique physical XY locations on the supersampled lattice."""
+def fixed_locations(config, count_per_axis=65):
+    """Uniform physical XY locations snapped to the supersampled lattice."""
+    if isinstance(count_per_axis, bool) or not isinstance(count_per_axis, int) or count_per_axis < 2:
+        raise ValueError("count_per_axis must be an integer >= 2")
     ticks = np.asarray(config.volume_um[:2], float) * config.vres * config.ss
     if (
         not np.all(np.isfinite(ticks))
-        or np.any(ticks < 31)
+        or np.any(ticks < count_per_axis - 1)
         or not np.allclose(ticks, np.round(ticks))
     ):
         raise ValueError(
-            "Fixed 32x32 requires an integer optical lattice with at least 32 positions per axis"
+            f"Fixed {count_per_axis}x{count_per_axis} requires an integer optical lattice "
+            f"with at least {count_per_axis} positions per axis; choose count_per_axis explicitly"
         )
-    axes = [np.round(np.linspace(0, int(round(n)), 32)) / (config.vres * config.ss) for n in ticks]
+    axes = [np.round(np.linspace(0, int(round(n)), count_per_axis)) / (config.vres * config.ss) for n in ticks]
     points = np.stack(np.meshgrid(*axes, indexing="ij"), -1).reshape(-1, 2)
-    if len(np.unique(points, axis=0)) != 1024:
+    if len(np.unique(points, axis=0)) != count_per_axis ** 2:
         raise ValueError("Grid contains duplicate locations")
     return points
 
@@ -105,7 +108,7 @@ class CubicField:
 @lru_cache(maxsize=2)
 def _cached_field(extent, vres, ss, shape):
     cfg = SimpleNamespace(volume_um=extent, vres=vres, ss=ss)
-    return CubicField(cfg, fixed_locations(cfg), shape)
+    return CubicField(cfg, fixed_locations(cfg, 32), shape)
 
 
 def clear_geometry_cache():
@@ -113,8 +116,11 @@ def clear_geometry_cache():
     _cached_field.cache_clear()
 
 
-def assemble(config, out, shape, *, mask_mode="cubic", z_positions=None, cut=None):
-    """Assemble native per-location outputs; also used by small parity tests."""
+def assemble(config, out, shape, *, mask_mode="matlab_v4", z_positions=None, cut=None):
+    """Assemble native outputs. Legacy cubic aggregation is diagnostic-only.
+
+    Full-field cubic imaging lives in maomi.enhanced and never averages PSFs.
+    """
     points = out["points_um"]
     psfs = out["psfs"]
     energies = psfs.sum((1, 2, 3), dtype=np.float64)
@@ -125,7 +131,7 @@ def assemble(config, out, shape, *, mask_mode="cubic", z_positions=None, cut=Non
     values = np.stack(values, axis=1)
     cache_hit = False
     if mask_mode == "cubic":
-        if len(points) == 1024 and np.array_equal(points, fixed_locations(config)):
+        if len(points) == 1024 and np.array_equal(points, fixed_locations(config, 32)):
             before = _cached_field.cache_info().hits
             model = _cached_field(tuple(config.volume_um[:2]), config.vres, config.ss, tuple(shape))
             cache_hit = _cached_field.cache_info().hits > before
@@ -198,15 +204,20 @@ def run_fixed(
     beam_weights=None,
     tails=True,
     batch_size=32,
-    mask_mode="cubic",
+    count_per_axis=65,
+    mask_mode="matlab_v4",
     device="cuda",
 ):
-    """Full optical outputs plus a focal static Z-stack; 1024 spatial positions per beam.
+    """MATLAB v4 masks and arithmetic PSF averaging; 65x65 sites per beam by default.
 
     Tails are returned as descriptors, not added as functional-movie background.
     Collection absorption is applied to the image when vessels are supplied.
     CPU/windowed reference optics remain in maomi.optics.run_optics/propagate.
     """
+    if mask_mode != "matlab_v4":
+        raise ValueError("run_fixed requires matlab_v4; use maomi.enhanced.CubicFullFieldRenderer "
+                         "with a complete custom FullFieldPSF for cubic imaging")
+    points = fixed_locations(config, count_per_axis)
     if isinstance(input_pupil, dict):
         if custom_phase is not None:
             raise ValueError("Compose channel pupil phases explicitly")
@@ -234,6 +245,7 @@ def run_fixed(
                 input_pupil=field,
                 tails=tails,
                 batch_size=batch_size,
+                count_per_axis=count_per_axis,
                 mask_mode=mask_mode,
                 device=device,
             )
@@ -243,14 +255,16 @@ def run_fixed(
             "channels": channels,
             "beam_weights": weights,
             "image": sum(weights[k] * v["image"] for k, v in channels.items()),
-            "points_um": fixed_locations(config),
-            "unique_optical_paths": 1024 * len(channels),
-            "unique_optical_positions": 1024,
+            "points_um": points,
+            "unique_optical_paths": len(points) * len(channels),
+            "unique_optical_positions": len(points),
             "total_seconds": time.perf_counter() - start,
             "settings": {
                 "combination": "incoherent detected-intensity sum",
                 "scaling": config.scaling,
                 "paths_per_position": len(channels),
+                "count_per_axis": count_per_axis,
+                "mask_mode": mask_mode,
             },
         }
     if beam_weights is not None:
@@ -263,13 +277,10 @@ def run_fixed(
         raise RuntimeError("CUDA-enabled PyTorch and an NVIDIA GPU are required for run_fixed")
     if not isinstance(batch_size, int) or batch_size < 1:
         raise ValueError("batch_size must be a positive integer")
-    if mask_mode not in ("cubic", "matlab_v4"):
-        raise ValueError("Unknown mask mode")
     if phase_units not in ("radians", "waves") or phase_aperture not in ("objective", "excitation"):
         raise ValueError("Invalid pupil phase units/aperture")
     if input_pupil is not None and custom_phase is not None:
         raise ValueError("Supply either input_pupil or custom_phase; compose the field explicitly")
-    points = fixed_locations(config)
     volume = np.asarray(volume, np.float32)
     expected = tuple(np.round(np.asarray(config.volume_um) * config.vres).astype(int))
     if volume.shape != expected or not np.isfinite(volume).all():
@@ -371,14 +382,10 @@ def run_fixed(
         "input_pupil": "provided" if input_pupil is not None else "gaussian",
         "collection_absorption": vessels is not None,
         "tail_background_added_to_image": False,
-        "count_per_axis": 32,
+        "count_per_axis": count_per_axis,
         "adaptive": False,
         "low_order_subtraction": False,
         "mask_mode": mask_mode,
-        "psf_average": (
-            "dense-lattice cubic quadrature"
-            if mask_mode == "cubic"
-            else "arithmetic mean of absolute per-point PSFs"
-        ),
+        "psf_average": "arithmetic mean of absolute per-point PSFs",
     }
     return result

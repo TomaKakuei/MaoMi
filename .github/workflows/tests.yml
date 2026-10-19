@@ -31,3 +31,8 @@ jobs:
       - run: python tools/verify_psf_field.py --folder artifacts/ci_psf
       - run: python examples/rayoptics_custom_psf.py --output artifacts/ci_rayoptics
       - run: python tools/verify_platform_demo.py --folder artifacts/ci_rayoptics
+      - run: python examples/enhanced_full_field.py --no-status-window --output artifacts/ci_enhanced
+      - run: python -m maomi --mode rana --demo --no-status-window --output artifacts/ci_rana
+      - name: Installed RANA physics demo outside the checkout
+        working-directory: ${{ runner.temp }}
+        run: python -m maomi --mode rana --physics-demo --no-status-window --output rana_physics

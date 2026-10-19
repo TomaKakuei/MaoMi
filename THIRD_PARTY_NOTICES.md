@@ -1,6 +1,6 @@
 # Source attribution
 
-MAOMi's tissue, activity, scanning and optical routines derive from NAOMi by
+MaoMi's tissue, activity, scanning and optical routines derive from NAOMi by
 Alex Song, Adam Charles and collaborators. The original MIT notice is included
 in `LICENSES/NAOMi-MIT.txt`. Development used an identified MATLAB checkout
 containing local modifications; it is not represented as an untouched upstream
@@ -18,3 +18,9 @@ RayOptics is installed separately. The example lens is illustrative.
 NumPy, SciPy, PyTorch, CuPy, Numba, Matplotlib, tifffile, Astropy and
 imageio-ffmpeg are installed separately under their own licenses. No third-party
 binary libraries, MATLAB/MEX binaries or FFmpeg executable are bundled.
+
+RANA's field integral and interface equations reference the PSF Generator
+theory documentation; the implementation is original to MaoMi and does not
+bundle PSF Generator source. See [model references](docs/RANA_PHYSICS.md).
+The pixel-cat asset was generated from the project owner's own cat photograph;
+the original photograph is not distributed.

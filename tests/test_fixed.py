@@ -14,12 +14,21 @@ class GridAndInterpolation(unittest.TestCase):
     def test_1024_unique_lattice_locations(self):
         for extent in [(16.0, 16.0, 10.0), (16.0, 24.0, 10.0)]:
             cfg = OpticalConfig(volume_um=extent, vres=2.0)
-            p = fixed_locations(cfg)
+            p = fixed_locations(cfg, 32)
             self.assertEqual(p.shape, (1024, 2))
             self.assertEqual(len(np.unique(p, axis=0)), 1024)
             np.testing.assert_allclose(p * 4, np.round(p * 4))
             np.testing.assert_allclose(p.min(0), [0, 0])
             np.testing.assert_allclose(p.max(0), extent[:2])
+
+    def test_main_defaults_to_4225_sites_and_rejects_shared_cubic(self):
+        cfg, volume, _ = synthetic_scene()
+        self.assertEqual(fixed_locations(cfg).shape, (4225, 2))
+        with self.assertRaisesRegex(ValueError, "FullFieldRenderer"):
+            run_fixed(cfg, volume, mask_mode="cubic")
+        for count in [1, 3.5, True]:
+            with self.assertRaises(ValueError):
+                fixed_locations(cfg, count)
 
     def test_insufficient_lattice_rejected(self):
         with self.assertRaises(ValueError):
@@ -54,7 +63,9 @@ class FullOpticalPipeline(unittest.TestCase):
 
     def test_default_has_all_optical_descriptors(self):
         out = self.full
-        self.assertEqual(out["unique_optical_paths"], 1024)
+        self.assertEqual(out["unique_optical_paths"], 4225)
+        self.assertEqual(out["mask_mode"], "matlab_v4")
+        self.assertEqual(out["settings"]["count_per_axis"], 65)
         self.assertTrue(out["tails_computed"])
         for key in [
             "psf",

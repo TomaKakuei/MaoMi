@@ -1,4 +1,4 @@
-"""Run a real RayOptics -> MAOMi -> paired training-data demonstration on CPU.
+"""Run a real RayOptics -> MaoMi -> paired training-data demonstration on CPU.
 
 python examples/rayoptics_custom_psf.py --output artifacts/rayoptics_demo
 python examples/rayoptics_custom_psf.py --cells examples/cell_recipe.json --output artifacts/my_cells
@@ -102,7 +102,7 @@ def main():
         denoising_target='clean_expected_e: expected measurement including blur and background',
         latent_target='latent_density: ideal specimen density; a separate deconvolution task',
         detector='Poisson(clean_expected_e) + Normal(0, read_sigma_e); no clipping or quantization',
-        boundary='zero-extended MAOMi zstack convolution; light may leave the image',
+        boundary='zero-extended MaoMi zstack convolution; light may leave the image',
         split_policy='scene-disjoint; all dose/noise variants of a scene have one split',
         psf=psf.provenance, pairs=pairs, scenes=recipes,
         files={name:hashlib.sha256((args.output/name).read_bytes()).hexdigest() for name in ['psf.npz', 'pairs.npz']})
@@ -148,7 +148,7 @@ def render_preview(psf, densities, clean, noisy, path):
         ax.set_title(title, fontsize=10)
         ax.set_xticks([]); ax.set_yticks([])
         fig.colorbar(im, ax=ax, fraction=.045, pad=.03)
-    fig.suptitle('Editable cells + RayOptics lens + MAOMi acquisition (128 detected electrons / density unit)', fontsize=11)
+    fig.suptitle('Editable cells + RayOptics lens + MaoMi acquisition (128 detected electrons / density unit)', fontsize=11)
     fig.savefig(path, dpi=180)
     plt.close(fig)
 

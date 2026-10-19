@@ -1,20 +1,18 @@
-# Release packaging
+# Public snapshot
 
-Repository: [TomaKakuei/MaoMi](https://github.com/TomaKakuei/MaoMi).
-Development version: `0.5.0.dev0`.
-Suggested prerelease tag: `v0.5.0.dev0-platform-20261017`.
+MaoMi 0.7.0.dev0 introduces **RANA — Ray Aware Nonuniform Acquisition**.
+Use the [README](../README.md) and [one-page overview](TECHNICAL_REPORT.pdf).
 
-Build an installable wheel from the repository root:
+The public source includes the implementation, tests, runnable examples,
+equations, concise comparison results and the Rana pixel-cat asset. Source
+checksums are listed in `MANIFEST.sha256`. Local experiments, arrays, logs,
+backups and environment-specific runtime files are excluded.
 
-```shell
-python -m pip wheel . --no-deps --wheel-dir dist
+```sh
+python -m pip install ".[examples]"
+python -m maomi --mode rana --physics-demo --no-status-window --output artifacts/rana
+python -m unittest discover -s tests -v
 ```
 
-The wheel contains the Python runtime. The repository also includes examples,
-self-contained tests, API documentation and the [one-page English report](TECHNICAL_REPORT.pdf).
-Use [RELEASE_NOTES.md](RELEASE_NOTES.md) for a GitHub prerelease description.
-Attach the wheel, a source archive and the report when creating a release.
-Local experimental records are excluded from the public source.
-
-GitHub Actions runs CPU tests and the generated spatial-PSF example on Windows
-and Ubuntu. Check the repository's Actions tab for the result of each commit.
+Optional native CUDA propagation uses `.[cuda]` plus CUDA-enabled PyTorch.
+RayOptics uses `.[optics]`; Python 3.11/3.12 are covered by CPU CI.

@@ -9,7 +9,7 @@ python -m pip install ".[optics,examples]"
 This extra installs RayOptics 0.9.5 with OpticalGlass 1.x (`>=1.1.0,<2`).
 RayOptics 0.9.5 still imports the old `opticalglass.glass` API, which is absent
 from OpticalGlass 2.x. The explicit bound keeps Python 3.12 installations on a
-compatible combination instead of restricting MAOMi to Python 3.11.
+compatible combination instead of restricting MaoMi to Python 3.11.
 For an existing environment with the incompatible pair, run:
 
 ```sh
@@ -17,7 +17,7 @@ python -m pip install "opticalglass>=1.1.0,<2"
 python -m pip check
 ```
 
-After pulling a newer MAOMi checkout, rerun the extra installation command above
+After pulling a newer MaoMi checkout, rerun the extra installation command above
 to install its updated requirements. CI checks clean installations on Python
 3.11 and 3.12 on Linux and Windows, including an installed-package PSF trace from
 outside the source directory. These CPU checks do not validate CUDA deployment.

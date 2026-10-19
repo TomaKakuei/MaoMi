@@ -1,0 +1,198 @@
+{
+  "version": "0.7.0.dev0",
+  "protocol": {
+    "shape": [
+      256,
+      256,
+      16
+    ],
+    "voxel_size_um": [
+      0.15,
+      0.15,
+      0.75
+    ],
+    "seed": 20261019,
+    "na": 1.1,
+    "medium": {
+      "immersion_index": 1.33,
+      "specimen_index": 1.38,
+      "glass_index": 1.52,
+      "design_glass_index": 1.52,
+      "glass_um": 170.0,
+      "design_glass_um": 170.0
+    },
+    "depth_nodes_um": [
+      50,
+      56,
+      62
+    ],
+    "kernel_shape": [
+      21,
+      21,
+      9
+    ],
+    "angular_samples": [
+      16,
+      40
+    ],
+    "acquisition": {
+      "voxel_order": 3,
+      "scan_offsets_um": [
+        [
+          -0.05196152422706631,
+          -0.0,
+          -0.0
+        ],
+        [
+          0.05196152422706631,
+          0.0,
+          0.0
+        ]
+      ],
+      "dwell_weights": [
+        0.5,
+        0.5
+      ],
+      "dwell_seconds": 1.0
+    },
+    "pulse": {
+      "wavelength_nm": 920.0,
+      "fwhm_fs": 100.0,
+      "gdd_fs2": 1800,
+      "samples": 33,
+      "time_oversample": 4
+    },
+    "emission": {
+      "wavelength_nm": [
+        500,
+        525,
+        550,
+        575
+      ],
+      "photon_density": [
+        0,
+        1,
+        0.7,
+        0
+      ],
+      "efficiency": [
+        0.55,
+        0.8,
+        0.7,
+        0.3
+      ]
+    },
+    "reference": {
+      "depth_nodes_um": [
+        50,
+        53,
+        56,
+        59,
+        62
+      ],
+      "angular_samples": [
+        24,
+        64
+      ],
+      "voxel_order": 4,
+      "scan_samples": 3,
+      "spectral_samples": 49
+    },
+    "execution": "Serial; CPU PSF construction; selected-device FFT rendering. No I/O in measured stages.",
+    "device": "cuda",
+    "python": "3.11.15",
+    "platform": "Windows-10-10.0.19045-SP0",
+    "timing": "One fresh bank build per route. Render speed: median of three warm calls on the identical bank.",
+    "image_metric": "100 * norm(route-reference) / norm(reference), full noiseless XYZ volume; no intensity fitting",
+    "comparison_scope": "Prescribed layered optical model: ablation effects and numerical convergence, not a MATLAB equivalence test"
+  },
+  "routes": {
+    "rana": {
+      "psf_build_seconds": 23.41879070000141,
+      "prepare_seconds": 0.024367300007725134,
+      "render_seconds": 0.30111509998096153,
+      "total_seconds": 23.744273099990096,
+      "bank_reused": false,
+      "relative_l2_percent_vs_rana": 0.0,
+      "relative_l2_percent_vs_reference": 0.10300180977381794
+    },
+    "fixed_depth": {
+      "psf_build_seconds": 2.00001522898674e-07,
+      "prepare_seconds": 0.005911699990974739,
+      "render_seconds": 0.037009899999247864,
+      "total_seconds": 0.0429217999917455,
+      "bank_reused": true,
+      "relative_l2_percent_vs_rana": 4.8823408158126185,
+      "relative_l2_percent_vs_reference": 4.867863935730367
+    },
+    "scalar": {
+      "psf_build_seconds": 12.49825969999074,
+      "prepare_seconds": 0.004043699998874217,
+      "render_seconds": 0.17516359998262487,
+      "total_seconds": 12.67746699997224,
+      "bank_reused": false,
+      "relative_l2_percent_vs_rana": 18.19286214818699,
+      "relative_l2_percent_vs_reference": 18.17704911370073
+    },
+    "point_sampling": {
+      "psf_build_seconds": 0.4703200999938417,
+      "prepare_seconds": 0.004939199978252873,
+      "render_seconds": 0.1320360000245273,
+      "total_seconds": 0.6072952999966219,
+      "bank_reused": false,
+      "relative_l2_percent_vs_rana": 1.3943451847415436,
+      "relative_l2_percent_vs_reference": 1.3574190024138169
+    },
+    "monochromatic_transform_limited": {
+      "psf_build_seconds": 0.5398707000131253,
+      "prepare_seconds": 0.004742499993881211,
+      "render_seconds": 0.08594360001734458,
+      "total_seconds": 0.6305568000243511,
+      "bank_reused": false,
+      "relative_l2_percent_vs_rana": 11.77649970524962,
+      "relative_l2_percent_vs_reference": 11.769224574562994
+    },
+    "simplified": {
+      "psf_build_seconds": 0.002615800010971725,
+      "prepare_seconds": 0.0036681999918073416,
+      "render_seconds": 0.05905350000830367,
+      "total_seconds": 0.06533760001184419,
+      "bank_reused": false,
+      "relative_l2_percent_vs_rana": 30.30912898652821,
+      "relative_l2_percent_vs_reference": 30.288478086918314
+    },
+    "reference": {
+      "psf_build_seconds": 392.4798068999953,
+      "prepare_seconds": 7.482000299991341,
+      "render_seconds": 0.4642846000206191,
+      "total_seconds": 400.42609180000727,
+      "bank_reused": false,
+      "relative_l2_percent_vs_rana": 0.10300895047214176,
+      "relative_l2_percent_vs_reference": 0.0,
+      "reused_reference": true,
+      "reference_sha256": "8b906b782b5f01eca101d7d02456e32c6ccec127ae1e4beba21f0be347fb6afa"
+    }
+  },
+  "render_benchmark": {
+    "cpu": {
+      "seconds": [
+        0.20573670000885613,
+        0.2397783000196796,
+        0.201806500001112
+      ],
+      "median_seconds": 0.20573670000885613,
+      "relative_l2_percent_vs_rana": 4.0738631565052016e-14
+    },
+    "cuda": {
+      "seconds": [
+        0.09434679997502826,
+        0.08763069999986328,
+        0.08254290002514608
+      ],
+      "median_seconds": 0.08763069999986328,
+      "relative_l2_percent_vs_rana": 0.0
+    }
+  },
+  "collection_fraction": 0.7588235294117647,
+  "broadened_pulse_fwhm_fs": 111.76165900769351
+}
