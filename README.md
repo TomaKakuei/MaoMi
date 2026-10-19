@@ -4,10 +4,7 @@
 
 **Modular anatomy and optics for Microscopy.** Faster simulation, open optics, programmable ground truth.
 
-MaoMi = **M**odular **a**natomy and **o**ptics for **Mi**croscopy (猫咪, “kitty”).
-
-**Standard MaoMi + RANA — Ray Aware Nonuniform Acquisition.**
-RANA: **theoretically higher accuracy（理论上精度更高）**.
+MaoMi = **M**odular **a**natomy and **o**ptics for **Mi**croscopy.
 
 Built on **NAOMi (Neural Anatomy and Optical Microscopy)** by Song et al. (2021).
 See [citation and upstream credit](#citation-and-upstream-credit).
