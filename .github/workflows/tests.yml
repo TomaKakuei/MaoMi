@@ -10,6 +10,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       MPLBACKEND: Agg
+      MAOMI_STATUS_WINDOW: '0'
+      OMP_NUM_THREADS: '4'
+      OPENBLAS_NUM_THREADS: '4'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,6 +30,8 @@ jobs:
           print({'rayoptics': version('rayoptics'), 'opticalglass': version('opticalglass'), 'shape': psf.intensity.shape});
           assert psf.intensity.shape == (32, 32)"
       - run: python -m unittest discover -s tests -v
+      - run: python examples/rana_movie.py --rana --output artifacts/ci_rana_movie
+      - run: python examples/rana_movie.py --rana --physics --nuclear --output artifacts/ci_rana_physics_movie
       - run: python examples/spatial_psf.py --output artifacts/ci_psf
       - run: python tools/verify_psf_field.py --folder artifacts/ci_psf
       - run: python examples/rayoptics_custom_psf.py --output artifacts/ci_rayoptics

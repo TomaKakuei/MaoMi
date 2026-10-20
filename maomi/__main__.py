@@ -1,4 +1,4 @@
-"""MaoMi: standard MATLAB-compatible optics or theoretically higher-accuracy Rana Mode."""
+"""MaoMi: MATLAB-compatible optics with the optional RANA optical add-on."""
 
 import argparse, json
 from dataclasses import asdict
@@ -29,6 +29,8 @@ def main(argv=None):
     p.add_argument("--save-per-point", action="store_true", help="Also save every focal PSF")
     p.add_argument("--output", type=Path, default=Path("artifacts/native_demo"))
     p.add_argument("--device", default="cuda")
+    p.add_argument("--rana", action="store_true", help="Enable local PSFs inside the native pipeline")
+    p.add_argument("--no-status-window", action="store_true", help="Disable the optional desktop status indicator")
     args = p.parse_args(argv)
     torch.set_num_threads(8)
     jf = Path(str(args.output) + ".json")
@@ -36,6 +38,7 @@ def main(argv=None):
     if jf.exists() or nf.exists():
         p.error("Output already exists; choose a new --output prefix")
     cfg, volume, vessels = synthetic_scene(args.scene, args.seed)
+    from .rana_addon import RanaAddon
     try:
         out = simulate(
             volume, config=cfg, mode="standard", device=args.device,
@@ -44,6 +47,7 @@ def main(argv=None):
             tails=not args.focal_only,
             batch_size=args.batch_size,
             count_per_axis=args.count_per_axis,
+            rana=RanaAddon(status_window=not args.no_status_window) if args.rana else False,
         )
     except (RuntimeError, ValueError) as exc:
         p.error(str(exc))
@@ -94,7 +98,7 @@ def rana_main(p, argv):
     p.add_argument("--z-origin-um", type=float, help="Lower Z edge; defaults to the first bank depth")
     p.add_argument("--physics-demo", action="store_true", help="Layered vectorial optics, voxel/scan integration and coherent pulse spectrum")
     p.add_argument("--device", default="cpu", help="cpu or cuda[:index]")
-    p.add_argument("--no-status-window", action="store_true", help="Disable the rotating pixel-cat window")
+    p.add_argument("--no-status-window", action="store_true", help="Disable the optional desktop status indicator")
     p.add_argument("--output", type=Path, default=Path("artifacts/rana_demo"))
     args = p.parse_args(argv)
     config = None

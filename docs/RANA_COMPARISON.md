@@ -8,6 +8,10 @@ in the [overview](TECHNICAL_REPORT.md).
 
 ![RANA image comparison](images/rana_comparison.png)
 
+This benchmark uses the standalone global cubic RBF renderer. The optional
+native acquisition add-on uses compact positive cubic interpolation, described
+in the [integration guide](RANA_MODE.md).
+
 ## Same input, controlled ablations
 
 | Route | Image difference vs RANA | Image difference vs higher quadrature |

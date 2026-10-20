@@ -29,6 +29,10 @@ class Contracts(unittest.TestCase):
         # The raw output preserves that distinction rather than silently fixing it.
         self.assertAlmostEqual(float(out["psf_raw"].sum()), out["mask_mean"], places=5)
         np.testing.assert_allclose(out["psf"], np.abs(out["psf_3d"]).mean(0))
+        for name in ("psfT", "psfB"):
+            np.testing.assert_allclose(out[name]["mask"], 1)
+            np.testing.assert_allclose(out[name]["mask"] * out[name]["mask_mean"],
+                                       out[name]["mask_raw"])
 
 
 if __name__ == "__main__":

@@ -207,6 +207,7 @@ def run_fixed(
     count_per_axis=65,
     mask_mode="matlab_v4",
     device="cuda",
+    rana=False,
 ):
     """MATLAB v4 masks and arithmetic PSF averaging; 65x65 sites per beam by default.
 
@@ -214,6 +215,20 @@ def run_fixed(
     Collection absorption is applied to the image when vessels are supplied.
     CPU/windowed reference optics remain in maomi.optics.run_optics/propagate.
     """
+    if rana is not False and rana is not None:
+        options = locals().copy()
+        options['rana'] = False
+        from .rana_addon import attach_rana, RanaAddon
+        from .rana_ui import RanaStatus
+        overall = time.perf_counter()
+        with RanaStatus(rana.status_window if isinstance(rana,RanaAddon) else True):
+            native = run_fixed(**options)
+            start = time.perf_counter()
+            result = attach_rana(native,rana,config=config,volume=volume,device=device)
+            result['timing_seconds'] = dict(native.get('timing_seconds',{}), rana=time.perf_counter()-start)
+            result['native_total_seconds'] = native['total_seconds']
+            result['total_seconds'] = time.perf_counter()-overall
+            return result
     if mask_mode != "matlab_v4":
         raise ValueError("run_fixed requires matlab_v4; use maomi.enhanced.CubicFullFieldRenderer "
                          "with a complete custom FullFieldPSF for cubic imaging")

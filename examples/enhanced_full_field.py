@@ -19,7 +19,7 @@ def main():
     parser.add_argument("--density", type=Path, help="XY or XYZ nonnegative fluorescence NPY")
     parser.add_argument("--origin-um", type=float, nargs=2, default=(0., 0.))
     parser.add_argument("--device", default="cpu", help="cpu or cuda[:index]")
-    parser.add_argument("--no-status-window", action="store_true", help="Disable the rotating cat indicator")
+    parser.add_argument("--no-status-window", action="store_true", help="Disable the optional status indicator")
     args = parser.parse_args()
     if bool(args.field) != bool(args.density):
         parser.error("Supply both --field and --density, or neither for the demo")

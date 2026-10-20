@@ -3,7 +3,7 @@
 from .scanning import zstack
 from .optics import OpticalConfig
 
-__version__ = "0.7.0.dev0"
+__version__ = "0.7.0.dev1"
 
 
 def run_fixed(*args, **kwargs):
@@ -19,3 +19,4 @@ from .runtime import simulate
 from .rana import RanaConfig
 from .rana_depth import DepthPSFBank, DepthFullFieldRenderer
 from .rana_optics import VectorialOptics, StratifiedMedium, Acquisition, PulseSpectrum, EmissionResponse
+from .rana_addon import RanaAddon, attach_rana

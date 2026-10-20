@@ -357,11 +357,15 @@ def propagate(
         actual_z = (za_pos[cut:] - za_pos[cut]) if j == 0 else zc_pos
         out_z = np.arange(round(actual_z[-1] * 1e6 * r) + 1) / r
         interp = np.interp(out_z, actual_z * 1e6, profile)
+        tail_mask = v4_interpolate(pts * r, weights[j], q)
+        tail_mean = float(tail_mask.mean())
         result[name] = {
             "convmask": np.mean(tails[j], 0),
             "weight": float(np.mean(weights[j])),
             "psfZ": interp / interp.mean() if interp.mean() > 0 else interp,
-            "mask_raw": v4_interpolate(pts * r, weights[j], q),
+            "mask_raw": tail_mask,
+            "mask_mean": tail_mean,
+            "mask": tail_mask / tail_mean if tail_mean > 0 else tail_mask,
         }
     return result
 
@@ -410,6 +414,7 @@ def run_optics(
     phase_units="radians",
     phase_aperture="objective",
     device="cpu",
+    rana=False,
 ):
     """Convenience pipeline with explicit physics and no stage-dependent factors.
 
@@ -436,4 +441,7 @@ def run_optics(
         "phase_aperture": phase_aperture,
         "low_order_subtraction": False,
     }
+    if rana is not False and rana is not None:
+        from .rana_addon import attach_rana
+        out = attach_rana(out,rana,config=config,device=device)
     return out

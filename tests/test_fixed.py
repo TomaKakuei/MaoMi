@@ -115,6 +115,35 @@ class FullOpticalPipeline(unittest.TestCase):
         self.assertNotIn("psfT", out)
         np.testing.assert_allclose(out["image"], self.full["image"], rtol=0, atol=0)
 
+    def test_rana_reuses_native_excitation_scattering_phase_and_beams(self):
+        from dataclasses import replace
+        from maomi import RanaAddon
+        phase = np.linspace(0., .4, 17*17).reshape(17,17)
+        for mode in ("one-photon", "two-photon", "three-photon", "temporal-focusing"):
+            with self.subTest(mode=mode):
+                cfg = replace(self.cfg, scaling=mode)
+                kw = dict(vessels=self.vessels, raw_fields=self.raw, count_per_axis=3,
+                          custom_phase=phase, tails=True)
+                standard = run_fixed(cfg, self.volume, **kw)
+                local = run_fixed(cfg, self.volume, rana=RanaAddon(status_window=False), **kw)
+                for key in ("psf_3d", "mask", "colmask", "psf"):
+                    np.testing.assert_array_equal(standard[key], local[key])
+                for key in ("psfT", "psfB"):
+                    np.testing.assert_array_equal(standard[key]["convmask"], local[key]["convmask"])
+                self.assertEqual(local["settings"]["scaling"], mode)
+                self.assertTrue(np.isfinite(local["image"]).all())
+                self.assertIn("rana", local["timing_seconds"])
+        field = pupil(self.cfg).numpy()
+        combined = run_fixed(self.cfg, self.volume, raw_fields=self.raw, vessels=self.vessels,
+                             input_pupil={"left": field, "right": field},
+                             beam_weights={"left": .7, "right": 1.3}, count_per_axis=3,
+                             rana=RanaAddon(status_window=False))
+        for channel in combined["channels"].values():
+            self.assertIn("rana", channel)
+        np.testing.assert_allclose(combined["image"],
+                                   .7*combined["channels"]["left"]["image"]+
+                                   1.3*combined["channels"]["right"]["image"])
+
     def test_assembled_tail_outputs_match_reference(self):
         from maomi.backends.cuda.batched import OpticalPlan
 

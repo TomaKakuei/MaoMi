@@ -1,7 +1,5 @@
 # MaoMi
 
-<img src="maomi/assets/rana_cat.png" alt="Rana pixel cat" width="96" align="right">
-
 **Modular anatomy and optics for Microscopy.** Faster simulation, open optics, programmable ground truth.
 
 MaoMi = **M**odular **a**natomy and **o**ptics for **Mi**croscopy.
@@ -23,7 +21,9 @@ Same 512 x 512 x 60 tissue, scattering input, pupil and 4225 sites. Full-volume 
 
 ## 2. Extensibility
 
-Two explicit modes: standard MaoMi preserves MATLAB v4 assembly and native CUDA workflows. RANA (Ray Aware Nonuniform Acquisition) retains each position's full PSF shape and gain with cubic XY interpolation and depth-dependent PSF banks.
+RANA (Ray Aware Nonuniform Acquisition) is an optional optical add-on to MaoMi.
+It retains local PSFs inside the existing anatomy, activity and acquisition
+pipeline. The default MATLAB-compatible workflow remains the default.
 
 **RANA: theoretically higher accuracy through four implemented extensions: refractive-index/depth aberration, high-NA vectorial optics, finite-voxel/scan integration and coherent pulse/spectral response.**
 
@@ -41,41 +41,38 @@ Julia: [pinned snapshot, 17 May 2026](https://github.com/JuliaNeuroscience/NAOMi
 | --- | --- |
 | RayOptics / wave solvers | Sampled local PSFs, pupil OPD/amplitude callbacks and portable field banks. |
 | RANA physics | Layered vector fields, polarization, voxel/scan dwell, dispersion and spectra. |
-| Cells and paired data | Editable cells, clean/noisy pairs, latent density, seeds and scene splits. |
+| Cells and paired data | Editable cells, activity, clean/noisy movies and latent GT; shared acquisition and export with RANA. |
 
 
-RANA 256 x 256 x 16 control: 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.
+RANA standalone static control (256 x 256 x 16): 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.
 
-See [RANA mode](docs/RANA_MODE.md), [physics and units](docs/RANA_PHYSICS.md),
+See [RANA add-on](docs/RANA_MODE.md), [physics and units](docs/RANA_PHYSICS.md),
 [comparison and individual ablations](docs/RANA_COMPARISON.md), [PSF interfaces](docs/PSF_INTERFACE.md) and [API](docs/API.md).
 
 
-Choose your mode explicitly:
+Enable RANA when local optical fields are needed:
 
-| Mode | Purpose | Desktop |
-| --- | --- | --- |
-| `standard` (default) | MATLAB compatibility and native CUDA speed | Normal execution |
-| `rana` | **Theoretically higher accuracy** with full-field optics and four physics extensions | Optional rotating pixel-cat indicator |
+| Configuration | Purpose |
+| --- | --- |
+| Default MaoMi | MATLAB compatibility and native CUDA speed |
+| MaoMi + RANA | **Theoretically higher accuracy** with local PSFs and optional physics providers |
 
 ```sh
 python -m pip install ".[examples]"
-# RANA: self-contained example with all four extensions, CPU optics/rendering
-python -m maomi --mode rana --physics-demo --output artifacts/rana
-# RANA: external full-field PSFs or depth banks, CUDA rendering
-python -m maomi --mode rana --psf-field bank.npz --volume density.npy --device cuda --output artifacts/custom
-# Standard MaoMi: CUDA-enabled PyTorch plus the cuda extra
+# Complete CPU movie pipeline: cells, activity, local optics, noise and GT.
+python examples/rana_movie.py --rana --output artifacts/local_movie
+# Same pipeline with all four physics extensions and nuclear labeling.
+python examples/rana_movie.py --rana --physics --nuclear --output artifacts/physics_movie
+# Native CUDA workflow: enable RANA by adding one flag.
 python -m pip install ".[cuda]"
-python -m maomi --mode standard --scene scattering --output artifacts/standard
+python -m maomi --scene scattering --rana --output artifacts/native_local
 ```
 
-The small Rana window uses the owner's original pixel-cat head and displays
-**MaoMi-Rana is working in background**. Closing it hides only the indicator;
-calculation continues. Use `--no-status-window` to disable it. Servers and CI
-run headlessly. Linux desktop users may need matching `python3-tk` or Conda `tk`.
-
-Python: `simulate(volume, mode="rana", config=RanaConfig(...), z_origin_um=...)`
-or `simulate(volume, mode="standard", config=OpticalConfig(...))`.
-Custom fields retain their local shapes and gains throughout image formation.
+In Python, add `rana=True` to `run_fixed(...)`, then call the same
+`scan_volume(neurons, optics, activity, scan)` as before. Omit the flag for the
+default MATLAB-compatible workflow. Existing optical results can be enhanced
+with `attach_rana`; custom PSFs and depth banks use `RanaAddon(field=...)`.
+See the [integration guide](docs/RANA_MODE.md).
 
 RayOptics and paired-data examples:
 
@@ -91,6 +88,10 @@ RayOptics 0.9.5 with `opticalglass>=1.1,<2`. Standard mode defaults to 65×65
 sites and `matlab_v4` assembly. Existing basic PSF and native movie APIs remain.
 
 Read the [one-page overview](docs/TECHNICAL_REPORT.pdf) and [release notes](docs/RELEASE_NOTES.md).
+
+The original NAOMi simulated datasets are available at **[OSF: NAOMi data](https://osf.io/863j9/)**
+([browse files](https://osf.io/863j9/files/)). See [downloading and using the data](docs/DATASETS.md)
+for MATLAB volume/activity files and movie-only datasets.
 
 ## 4. What's next
 

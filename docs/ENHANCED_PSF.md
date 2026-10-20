@@ -1,12 +1,12 @@
-# RANA Mode: a local PSF at every position
+# RANA full-field PSF contract
 
-MaoMi has two explicit routes. `run_fixed` follows the native MATLAB assembly:
-v4 spatial masks and an arithmetic mean of absolute local PSFs. **RANA Mode**
-uses `FullFieldPSF` and `CubicFullFieldRenderer`; every image position uses its
-own interpolated kernel. It never substitutes a common average PSF.
+MaoMi's optional RANA add-on retains a complete local PSF at every position.
+This page describes `FullFieldPSF` and the standalone global cubic RBF
+`CubicFullFieldRenderer`. The native acquisition add-on uses the same field
+contract with compact positive cubic interpolation.
 
-**Theoretically higher accuracy** through position-dependent local PSFs. Use the
-[explicit mode switch and desktop indicator](RANA_MODE.md).
+**Theoretically higher accuracy** through position-dependent local PSFs.
+See the [add-on switch and movie integration](RANA_MODE.md).
 
 ## Run it
 

@@ -40,17 +40,30 @@ specimen positions and resamples them onto a common intensity grid. A full
 [contract, equation and runnable examples](PSF_INTERFACE.md) explains source
 weighting, physical sampling, boundary behavior and the 2-D scope.
 
-## RANA Mode API
+## RANA acquisition add-on
 
-`maomi.simulate(volume, mode="standard", config=cfg, ...)` selects native
-MATLAB-compatible MaoMi. `simulate(volume, mode="rana", psf_field=field,
-voxel_size_um=..., device="cpu", status_window=True)` selects the theoretically
-higher-accuracy custom full-field route. Rana returns `image`, `mode`,
-`settings`, `validation`, `timing_seconds`, `simulation_seconds`, `total_seconds`
-and `status_window`. GUI startup is timed separately. Disable the cat with
-`status_window=False`; headless execution uses the same numerical operator.
-See [mode selection, desktop behavior and four physics extensions](RANA_MODE.md).
+`run_fixed(..., rana=True)` and `run_optics(..., rana=True)` attach complete
+native local PSFs. Default `rana=False` retains the original behavior.
+`attach_rana(optics, RanaAddon(...), config=cfg, volume=None)` reuses
+previously propagated optics. The optional volume also produces a static image.
+`RanaAddon(field=None, voxel_size_um=None, origin_um=(0,0), z_origin_um=0,
+device=None, status_window=True)` uses native PSFs by default; `field` accepts
+`FullFieldPSF`, `DepthPSFBank`, `RanaConfig`, or a per-channel dictionary.
+Pitch must match the source volume. Custom banks use explicit depth coordinates.
 
+The returned mapping retains native masks, tails and descriptors and adds
+`optics["rana"]`. `scan_volume` / `iter_scan_volume` consume it automatically.
+For dense inputs use `scan_movie(..., rana=optics["rana"])`; for static scanning
+use `zstack(..., rana=optics["rana"], mask=..., collection_mask=...)`.
+`settings["rana"]` records the local grid, interpolation, gain and provider.
+`run_fixed` adds an attachment/render time under `timing_seconds["rana"]`;
+`total_seconds` includes it.
+
+The standalone `simulate(..., mode="rana")` custom-field renderer remains
+available, including its original global cubic RBF interpolation and timing
+fields. Native acquisition uses compact positive cubic weights. See the
+[RANA integration guide](RANA_MODE.md) for conventions and runnable movies.
+Use `status_window=False` or `MAOMI_STATUS_WINDOW=0` for unattended execution.
 
 `maomi.FullFieldPSF` carries non-normalized effective XY or XYZ kernels on a
 complete XY field. `maomi.CubicFullFieldRenderer(field, shape,
@@ -141,4 +154,4 @@ Alternatively pass `psf_field=FullFieldPSF|DepthPSFBank` with explicit
 
 Returned timing fields separate `status_start`, `optics`, `preparation` and
 `render`; `simulation_seconds` includes the last three, excluding the indicator.
-See [runnable mode guide](RANA_MODE.md) and [equations/units](RANA_PHYSICS.md).
+See [runnable add-on guide](RANA_MODE.md) and [equations/units](RANA_PHYSICS.md).

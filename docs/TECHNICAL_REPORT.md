@@ -16,7 +16,7 @@ Same 512 x 512 x 60 tissue, scattering input, pupil and 4225 sites. Full-volume 
 
 ## 2. Extensibility
 
-Two explicit modes: standard MaoMi preserves MATLAB v4 assembly and native CUDA workflows. RANA (Ray Aware Nonuniform Acquisition) retains each position's full PSF shape and gain with cubic XY interpolation and depth-dependent PSF banks.
+RANA (Ray Aware Nonuniform Acquisition) is an optional optical add-on. Native local PSFs and custom physics providers feed the same anatomy, activity, movie, noise and export workflow. Default MaoMi remains MATLAB-compatible.
 
 **RANA: theoretically higher accuracy through four implemented extensions: refractive-index/depth aberration, high-NA vectorial optics, finite-voxel/scan integration and coherent pulse/spectral response.**
 
@@ -34,12 +34,14 @@ Julia: [pinned snapshot, 17 May 2026](https://github.com/JuliaNeuroscience/NAOMi
 | --- | --- |
 | RayOptics / wave solvers | Sampled local PSFs, pupil OPD/amplitude callbacks and portable field banks. |
 | RANA physics | Layered vector fields, polarization, voxel/scan dwell, dispersion and spectra. |
-| Cells and paired data | Editable cells, clean/noisy pairs, latent density, seeds and scene splits. |
+| Cells and paired data | Editable cells, activity, clean/noisy movies and latent GT; shared acquisition/export. |
 
 
-RANA 256 x 256 x 16 control: 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.
+RANA standalone static control (256 x 256 x 16): 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.
 
-See [RANA mode](RANA_MODE.md), [physics and units](RANA_PHYSICS.md),
+Original data: [NAOMi on OSF](https://osf.io/863j9/).
+
+See [RANA add-on](RANA_MODE.md), [physics and units](RANA_PHYSICS.md),
 [comparison and individual ablations](RANA_COMPARISON.md), [PSF interfaces](PSF_INTERFACE.md) and [API](API.md).
 
 ## 4. What's next

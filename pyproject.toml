@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maomi-optics-preview"
-version = "0.7.0.dev0"
+version = "0.7.0.dev1"
 description = "MaoMi: accelerated optical simulation with open PSF interfaces and procedural ground truth"
 readme = "README.md"
 requires-python = ">=3.11"

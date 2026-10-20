@@ -5,7 +5,7 @@ import torch
 from scipy.fft import next_fast_len
 
 
-def zstack(volume, psf, *, device="cpu", mode="matlab_convn", mask=None, collection_mask=None):
+def zstack(volume, psf, *, device="cpu", mode="matlab_convn", mask=None, collection_mask=None, rana=None):
     """FFT implementation of MATLAB convn(...,'same') or the July Python scan.
 
     matlab_convn: zero extension in all axes, convolution in all axes, MATLAB
@@ -26,6 +26,11 @@ def zstack(volume, psf, *, device="cpu", mode="matlab_convn", mask=None, collect
             if tuple(m.shape) != tuple(v.shape[:2]):
                 raise ValueError("Mask must match volume XY")
             v = v * m[..., None]
+    if rana is not None and rana is not False:
+        if mode != 'matlab_convn':
+            raise ValueError('RANA uses zero-extended local optics; legacy_circular is a different boundary model')
+        result = rana.static(v.detach().cpu().numpy())
+        return torch.as_tensor(result,device=device,dtype=v.dtype)
     if mode == "matlab_convn":
         n = tuple(next_fast_len(a + b - 1) for a, b in zip(v.shape, p.shape))
         full = torch.fft.irfftn(torch.fft.rfftn(v, s=n) * torch.fft.rfftn(p, s=n), s=n)

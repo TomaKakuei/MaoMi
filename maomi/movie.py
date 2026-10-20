@@ -45,8 +45,10 @@ def psf_fft(volume_shape, psf, scan_avg=1):
     return fft2(grouped, s=shape, axes=(0, 1))
 
 
-def single_scan(volume, psf, *, scan_avg=1, frequency_psf=None):
+def single_scan(volume, psf, *, scan_avg=1, frequency_psf=None, rana=None, z_start=0):
     """One XY frame: sum axial slice convolutions, with optional grouped Z."""
+    if rana is not None and rana is not False:
+        return rana.scan_slab(volume,scan_avg=scan_avg,z_start=z_start)
     volume = np.asarray(volume)
     psf = np.asarray(psf)
     if volume.ndim != 3 or psf.ndim != 3 or volume.shape[2] != psf.shape[2]:
@@ -214,7 +216,8 @@ def scan_movie(
     noise_parameters=None,
     noise_draws=None,
     bleed_uniforms=None,
-    rng=None
+    rng=None,
+    rana=None,
 ):
     """Scan dense component volumes K,X,Y,Z into clean and optional noisy movies.
 
@@ -244,18 +247,32 @@ def scan_movie(
     changes = activity - baseline
     changes[changes < activity_cutoff] = 0
     activity = baseline + changes
-    z_start = max(0, int(np.floor((nz - psf.shape[2]) / 2)) - 1) if z_start is None else z_start
+    depth = psf.shape[2] if rana is None or rana is False else rana.kernel_shape[2]
+    z_start = max(0, int(np.floor((nz - depth) / 2)) - 1) if z_start is None else z_start
     starts = np.broadcast_to(np.asarray(z_start, dtype=int), (nt,))
-    if np.any(starts < 0) or np.any(starts + psf.shape[2] > nz):
+    if np.any(starts < 0) or np.any(starts + depth > nz):
         raise ValueError("Focal slab outside component volume")
-    freq = psf_fft((n, m, psf.shape[2]), psf, scan_avg)
+    freq = psf_fft((n, m, psf.shape[2]), psf, scan_avg) if rana is None or rana is False else None
+    if rana is not None and rana is not False:
+        prepared = []
+        for spec in tails:
+            spec = dict(spec)
+            if spec.get("frequency", False):
+                intensity = ifft2(spec["kernel"], axes=(0, 1)).real
+                spec["kernel"] = fft2(rana.physical_tail(intensity), axes=(0, 1))
+            else:
+                spec["kernel"] = rana.physical_tail(spec["kernel"])
+            if spec.get("mask") is not None:
+                spec["mask"] = rana.physical_tail(spec["mask"])
+            prepared.append(spec)
+        tails = prepared
     clean = []
     noisy = []
     for t in range(nt):
         volume = np.einsum("kxyz,k->xyz", weighted, activity[:, t], optimize=True)
         z = starts[t]
         frame = single_scan(
-            volume[:, :, z : z + psf.shape[2]], psf, scan_avg=scan_avg, frequency_psf=freq
+            volume[:, :, z : z + depth], psf, scan_avg=scan_avg, frequency_psf=freq, rana=rana, z_start=z
         ) * (signal_scale / (2 * sfrac * sfrac))
         for spec in tails:
             kw = dict(spec)
@@ -479,6 +496,8 @@ def iter_scan_volume(
     sf = float(p["sfrac"])
     buffer = int(p["scan_buff"])
     psf = np.asarray(optics["psf"], np.float32)
+    rana = optics.get('rana')
+    depth = psf.shape[2] if rana is None else rana.kernel_shape[2]
     shape = tuple(np.asarray(neurons["neur_vol"]).shape)
     n, m, nz = shape
     common = None
@@ -574,15 +593,19 @@ def iter_scan_volume(
         * sf
         / (250 * 250)
     )
-    freq = psf_fft(shape, psf, int(p["scan_avg"]))
+    freq = psf_fft(shape, psf, int(p["scan_avg"])) if rana is None else None
     tails = []
     for name in ["psfT", "psfB"]:
         spec = optics.get(name)
         if spec is None:
             continue
         kernel = np.asarray(spec["convmask"], np.float32)
+        if rana is not None:
+            kernel = rana.physical_tail(kernel)
         kernel = kernel / kernel.sum()
         tm = np.asarray(spec["mask"], np.float32)
+        if rana is not None:
+            tm = rana.physical_tail(tm)
         tm = tm / tm.mean()
         tails.append(
             {
@@ -597,7 +620,7 @@ def iter_scan_volume(
     if motion is None:
         motion = sample_motion(
             shape,
-            psf.shape[2],
+            depth,
             nt,
             buffer=buffer,
             zoffset=p["zoffset"],
@@ -623,18 +646,20 @@ def iter_scan_volume(
         temp = temp.reshape(shape, order="F")
         position = motion[t]
         z = int(position["z"]) - 1
-        if z < 0 or z + psf.shape[2] > nz:
+        if z < 0 or z + depth > nz:
             raise ValueError("Motion places focal slab outside volume")
         frame = single_scan(
-            temp[:, :, z : z + psf.shape[2]] + base[:, :, z : z + psf.shape[2]],
+            temp[:, :, z : z + depth] + base[:, :, z : z + depth],
             psf,
             scan_avg=int(p["scan_avg"]),
             frequency_psf=freq,
+            rana=rana,
+            z_start=z,
         ) * (scale / (2 * sf * sf))
         if "g_blur" in optics:
             frame += conv2_same(frame, optics["blur"])
         for j, spec in enumerate(tails):
-            indices = np.arange(z) if j == 0 else np.arange(z + psf.shape[2], nz)
+            indices = np.arange(z) if j == 0 else np.arange(z + depth, nz)
             zs = spec["zscale"]
             if len(indices) == 0:
                 indices = np.arange(nz)
@@ -741,7 +766,7 @@ def _iter_multibeam(
     p.update(scan or {})
     shape = np.asarray(neurons["neur_vol"]).shape
     nt = np.atleast_2d(activity["soma"]).shape[1]
-    depths = {np.asarray(o["psf"]).shape[2] for o in channels.values()}
+    depths = {o['rana'].kernel_shape[2] if o.get('rana') is not None else np.asarray(o['psf']).shape[2] for o in channels.values()}
     if len(depths) != 1:
         raise ValueError("Beams must share focal depth and acquisition geometry")
     rng = np.random.default_rng() if rng is None else rng

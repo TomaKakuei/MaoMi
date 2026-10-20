@@ -4,9 +4,10 @@
 accuracy through local optical fields, depth-dependent aberration, vectorial
 focusing, finite-volume acquisition and coherent pulse integration.**
 
-All four extensions are implemented. They compose in `RanaConfig` and feed the
-same complete-field CPU/CUDA renderer. Original MATLAB-compatible tissue,
-scattering, activity and movie workflows use `mode="standard"`.
+All four extensions compose in `RanaConfig`. Attach them to the existing
+acquisition pipeline with `RanaAddon(field=config)` for tissue, activity,
+movie scans, noise and export. The standalone complete-field CPU/CUDA renderer
+also remains available. See the [add-on guide](RANA_MODE.md).
 
 ## 1. Depth and refractive-index interfaces
 

@@ -1,8 +1,8 @@
 {
   "schema": "maomi.public_snapshot.v1",
   "project": "MaoMi",
-  "version": "0.7.0.dev0",
-  "snapshot": "rana-20261019",
+  "version": "0.7.0.dev1",
+  "snapshot": "rana-addon-20261019",
   "report": "docs/TECHNICAL_REPORT.pdf",
   "report_pages": 1,
   "report_sections": [
@@ -15,9 +15,10 @@
   "local_experimental_records_included": false,
   "repository": "https://github.com/TomaKakuei/MaoMi",
   "routes": [
-    "standard: MATLAB-compatible native",
-    "rana: theoretically higher-accuracy full-field optics"
+    "Native MaoMi with optional RANA acquisition add-on",
+    "Standalone custom-field renderer (compatible API)"
   ],
   "mode_expansion": "RANA - Ray Aware Nonuniform Acquisition",
-  "public_comparison": "docs/RANA_COMPARISON.md"
+  "public_comparison": "docs/RANA_COMPARISON.md",
+  "datasets": "docs/DATASETS.md"
 }
