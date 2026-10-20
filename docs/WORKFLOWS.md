@@ -27,6 +27,11 @@ CUDA accelerates native optical propagation and RANA local-PSF convolution.
 Standard movie convolution, motion, detector noise and file output currently
 run on the CPU.
 
+`generate_scene(..., preset="naomi")` enables vessels, dendrites, background
+and axons. Default dendrite block widths adapt to divide the requested voxel
+dimensions; tissue size and voxel pitch stay as requested. Explicit
+`overrides={"dend": {"dimsSS": [...]}}` values are retained.
+
 ## Import original NAOMi MAT files
 
 ```python

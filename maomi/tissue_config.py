@@ -8,6 +8,8 @@ def tissue_parameters(config=None,*,preset="compact",overrides=None):
     """Return all six dictionaries for simulate_tissue.
 
     naomi uses upstream morphology defaults at the requested volume size.
+    Default dendrite block widths adapt to divide the voxel dimensions;
+    explicitly supplied dimsSS values are retained.
     compact explicitly reduces process counts/branches for a short tutorial;
     its vessel, background and axon stages are off and remain individually
     configurable. Neither preset silently changes the optical volume.
@@ -51,6 +53,16 @@ def tissue_parameters(config=None,*,preset="compact",overrides=None):
                 out[key][name].update(value)
             else:
                 out[key][name] = value
+    if "dimsSS" not in (overrides or {}).get("dend", {}):
+        # The growth kernels reshape fine voxels into complete coarse blocks.
+        # Retain each default width whenever it divides the requested grid;
+        # otherwise use the largest smaller divisor, without resizing tissue.
+        voxel_shape = np.round(np.asarray(v["vol_sz"]) * v["vres"]).astype(int)
+        d["dimsSS"] = [
+            next(width for width in range(min(int(default), int(length)), 0, -1)
+                 if length % width == 0)
+            for length, default in zip(voxel_shape, d["dimsSS"])
+        ]
     for key in out:
         out[key] = {k:np.array(v) if isinstance(v,(tuple,list)) else deepcopy(v) for k,v in out[key].items()}
     return out

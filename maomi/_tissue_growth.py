@@ -88,7 +88,7 @@ def generate_background(
         free[np.asarray(row[0], int).ravel() - 1] = False
     free = free.reshape(shape, order="F")
     out = _baseline(shape, components, nuclei)
-    dt = np.array(d.dtParams, copy=True)
+    dt = np.array(d.dtParams, dtype=float, copy=True)
     dt[1:3] *= v.vres
     thickness = d.thicknessScale * v.vres**2
     M = r.draw("rand", shape).astype(np.float32)
