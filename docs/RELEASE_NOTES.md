@@ -1,5 +1,9 @@
 # MaoMi 0.8.0.dev0 - source-to-movie workflows
 
+- Correct automatic Y-motion bounds so boundary shifts do not introduce an
+  invalid final column before detector noise. Explicit supplied trajectories
+  retain the existing row-scanner coordinate convention.
+
 - Direct original NAOMi MAT v5/v7.3 import, lazy input arrays, physical ROI
   cropping and sparse-index remapping with preserved component IDs.
 - Unified Scene/RunConfig execution on CPU/CUDA; complete procedural tissue

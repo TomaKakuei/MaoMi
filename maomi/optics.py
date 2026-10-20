@@ -1,7 +1,7 @@
 """Optical subset: explicit spatial samples, A/B/C paths, tails and collection.
 
 Derived from Song & Charles' MIT NAOMi MATLAB optical routines (2016-2021),
-and the preserved July 2026 local Python port. See LICENSE-NAOMi.txt.
+and the preserved July 2026 local Python port. See LICENSES/NAOMi-MIT.txt.
 This module does not implement MATLAB FM.fineSamp's interpolated wavefront pass.
 Instead it evaluates explicitly requested full optical paths.
 """

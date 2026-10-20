@@ -365,7 +365,12 @@ def tpmSignalscale(tpm_params, psf_params=None):
 
 
 def sample_motion(shape, psf_depth, frames, *, buffer=2, zoffset=0, enabled=True, rng=None):
-    """Generate the upstream motion law; cross-language RNG sequences may differ."""
+    """Sample the upstream motion law within the row scanner's valid crop.
+
+    Its X and Y offsets have different origins: retained columns permit
+    Y offsets in [0, 2*buffer], while X permits [1, 2*buffer+1].
+    Explicit user-supplied trajectories retain row_motion's original semantics.
+    """
     rng = np.random.default_rng() if rng is None else rng
     n, _, nz = shape
     zbase = int(np.floor(0.5 * (nz - psf_depth))) + zoffset
@@ -391,7 +396,7 @@ def sample_motion(shape, psf_depth, frames, *, buffer=2, zoffset=0, enabled=True
             np.linspace(0, 1, length) * (2 * (rng.random() - 0.5)) * (n / 200 if enabled else 0),
         ]
         shear = np.pad(shear, (0, max(0, n - len(shear))), mode="edge")[:n]
-        yrow = np.clip(yy + shear + rng.choice(drift, size=n), 1, 2 * buffer + 1)
+        yrow = np.clip(yy + shear + rng.choice(drift, size=n), 0, 2 * buffer)
         result.append({"x": int(xx), "y": np.floor(yrow + 0.5), "z": z})
     return result
 

@@ -25,7 +25,7 @@ Same 512 x 512 x 60 tissue, scattering input, pupil and 4225 sites. Full-volume 
 
 RANA (Ray Aware Nonuniform Acquisition) is an optional optical add-on to MaoMi.
 It retains local PSFs inside the existing anatomy, activity and acquisition
-pipeline. The default MATLAB-compatible workflow remains the default.
+pipeline. Standard mode uses the MATLAB-compatible optical assembly.
 
 **RANA: theoretically higher accuracy through four implemented extensions: refractive-index/depth aberration, high-NA vectorial optics, finite-voxel/scan integration and coherent pulse/spectral response.**
 

@@ -23,6 +23,9 @@ higher accuracy through complete local PSFs and optional physical extensions.
 `device="auto"` selects CUDA when CUDA-enabled PyTorch and CuPy are available,
 otherwise CPU. Explicit device requests are honored. The existing
 `simulate(..., device="cpu")` also supports static native imaging.
+CUDA accelerates native optical propagation and RANA local-PSF convolution.
+Standard movie convolution, motion, detector noise and file output currently
+run on the CPU.
 
 ## Import original NAOMi MAT files
 
@@ -99,6 +102,16 @@ Overwrite/additive semantics, duplicate indices and activity thresholds remain.
 Activity minima span the whole recording, computed in bounded chunks.
 Lazy activity/vessels avoid full input copies; the current scanner still keeps
 a dense working volume and the propagated optical arrays.
+
+For long recordings, supply `output=...` to `run_scene` or consume
+`iter_scan_volume` with a streaming exporter. `scan_volume` and
+`run_scene(output=None)` collect the full movie in RAM. Generated activity and
+the motion trajectory are still prepared for the whole recording; output
+chunking bounds image buffers, not every source array.
+
+Automatically generated motion is bounded to the row scanner's valid crop.
+Explicit motion retains the MATLAB coordinate convention; its X and Y
+offsets have different origins.
 
 ## Resume and train
 

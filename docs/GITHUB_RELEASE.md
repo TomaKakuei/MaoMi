@@ -4,7 +4,7 @@ MaoMi 0.8.0.dev0 connects source anatomy to standard/RANA acquisition through
 one CPU/CUDA workflow. Author: Yueze Wang.
 
 ```sh
-python -m pip install ".[mat,examples]"
+python -m pip install ".[mat,tissue,examples]"
 python -m maomi run --config examples/scene.json --output artifacts/movie
 python -m unittest discover -s tests -v
 ```
