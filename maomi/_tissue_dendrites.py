@@ -309,15 +309,15 @@ def grow_neuron_dendrites(
             lx = rem % dims[0]
 
             temp = 1 + dweight * rng.rand(dimsSS[0], dimsSS[1], dimsSS[2], 6)
-            filled = (
-                obstruction[
+            local_obstruction = obstruction[
                     lx * dimsSS[0] : (lx + 1) * dimsSS[0],
                     ly * dimsSS[1] : (ly + 1) * dimsSS[1],
                     lz * dimsSS[2] : (lz + 1) * dimsSS[2],
                 ]
-                * np.inf
-            )
-            filled[np.isnan(filled)] = 0
+            # Same zero/NaN-to-zero and signed infinity rule as the MATLAB
+            # obstruction product, without creating an expected 0*Inf warning.
+            filled = np.where(np.isnan(local_obstruction) | (local_obstruction == 0),
+                              0, np.copysign(np.inf,local_obstruction))
             temp += filled[..., None]
             ML[
                 lx * dimsSS[0] : (lx + 1) * dimsSS[0],

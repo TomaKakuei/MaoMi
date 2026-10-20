@@ -41,9 +41,10 @@ Julia: [pinned snapshot, 17 May 2026](https://github.com/JuliaNeuroscience/NAOMi
 
 | Connection | Available now |
 | --- | --- |
-| RayOptics / wave solvers | Sampled local PSFs, pupil OPD/amplitude callbacks and portable field banks. |
+| Original NAOMi MAT files | Direct v5/v7.3 import, lazy volume/activity reads and ROI-safe sparse indices. |
+| RayOptics / wave solvers | XYZ multiphoton PSF fields, complex-pupil coupling to tissue scattering and portable field banks. |
 | RANA physics | Layered vector fields, polarization, voxel/scan dwell, dispersion and spectra. |
-| Cells and paired data | Editable cells, activity, clean/noisy movies and latent GT; shared acquisition and export with RANA. |
+| Cells and paired data | Complete tissue presets, activity, resumable clean/noisy movies, cell labels and latent GT. |
 
 
 RANA standalone static control (256 x 256 x 16): 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.
@@ -76,13 +77,30 @@ default MATLAB-compatible workflow. Existing optical results can be enhanced
 with `attach_rana`; custom PSFs and depth banks use `RanaAddon(field=...)`.
 See the [integration guide](docs/RANA_MODE.md).
 
+One workflow for imported or generated tissue, CPU/CUDA and optional RANA:
+
+```sh
+python -m pip install ".[mat,examples]"
+python -m maomi run --config examples/scene.json --output artifacts/scene
+python -m maomi inspect source_tissue.mat
+python -m maomi run --input source_tissue.mat --frames 300 --rana --output artifacts/imported
+# Continue a saved movie without repeating optical propagation:
+python -m maomi resume artifacts/imported
+```
+
+`prepare_optics` reuses optics across acquisitions; local-PSF FFT caches and
+packed sparse buffers accelerate repeated frames. See the
+[complete workflow guide](docs/WORKFLOWS.md) for ROI import, custom optics,
+configuration, checkpoints and lazy training-data access.
+
 RayOptics and paired-data examples:
 
 ```sh
-python -m pip install ".[optics,examples]"
+python -m pip install ".[optics,mat,examples]"
 python examples/rayoptics_custom_psf.py --cells examples/cell_recipe.json --output artifacts/my_cells
 python examples/enhanced_full_field.py --no-status-window --output artifacts/paired_data
 python examples/rana_comparison.py --device cuda --output artifacts/comparison
+python examples/rayoptics_movie.py --route field --output artifacts/ray_movie
 ```
 
 Python 3.11+; Windows/Linux CPU CI covers 3.11 and 3.12. The optics extra pins

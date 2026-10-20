@@ -19,6 +19,17 @@ def simulate(volume, *, mode="standard", config=None, psf_field=None,
             raise ValueError("Standard mode requires config=OpticalConfig(...)")
         if psf_field is not None or voxel_size_um is not None or tuple(origin_um) != (0., 0.) or z_origin_um != 0:
             raise ValueError("Custom full-field inputs require mode='rana'")
+        if device in ("cpu","auto"):
+            from .workflow import prepare_optics,select_device,render_static
+            selected = select_device(device)
+            result = prepare_optics(config,device=selected,**native_options)
+            started = time.perf_counter()
+            result["image"] = render_static(volume,result,device=selected)
+            elapsed = time.perf_counter()-started
+            result.setdefault("timing_seconds",{})["static_scan"] = elapsed
+            result["total_seconds"] += elapsed
+            result["mode"] = "standard"
+            return result
         from .fixed import run_fixed
         result = run_fixed(config, volume, device=device or "cuda", **native_options)
         result["mode"] = "standard"

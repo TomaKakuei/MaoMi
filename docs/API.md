@@ -1,5 +1,20 @@
 ﻿# Public API
 
+## Complete scene workflow
+
+`Scene`, `load_naomi_mat`, `RunConfig` and `run_scene` connect imported or
+generated source tissue to standard/RANA acquisition on CPU/CUDA.
+`prepare_optics` and `render_static` separate propagation from rendering;
+`save_scene` / `load_scene` and `save_optics` / `load_optics` provide portable
+HDF5 archives. `MovieDataset` reads resumable clean/noisy frame pairs lazily.
+`tissue_parameters` and `generate_scene` provide complete editable morphology
+presets. See [examples and data contracts](WORKFLOWS.md).
+
+`maomi.integrations.volume.PSFVolume` and `volume_psf_field` adapt XYZ intensity,
+complex vector fields or effective excitation from wave programs.
+`maomi.integrations.rayoptics_volume` supplies `rayoptics_psf_volume`,
+`rayoptics_volume_field` and `rayoptics_native_pupil`.
+
 ## Platform extension API
 
 `maomi.psf.SampledPSF` (also exported through the existing `maomi.integrations` path) is the provider-neutral 2-D intensity contract:
@@ -126,7 +141,9 @@ is not the enhanced route.
 `run_fixed` returns a focal static Z-stack and top/bottom optical descriptors.
 Use `scan_volume` or `iter_scan_volume` to include dynamic out-of-focus activity.
 For large movies, feed the iterator to `maomi.movie_io.write_movie`; it supports
-NPY, TIFF, FITS and calibrated FFV1 AVI. Activity arrays remain resident.
+NPY, TIFF, FITS and calibrated FFV1 AVI. Sparse movie activity is read in bounded
+chunks and can use lazy MAT/HDF5 or memory-mapped arrays. Use `run_scene` for
+resumable paired output and full source/optics metadata.
 
 The top-level package keeps `OpticalConfig`, `run_fixed` and `zstack`.
 The private former `maomi_v2` backend is now `maomi.backends.cuda`;

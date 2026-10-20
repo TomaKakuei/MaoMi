@@ -208,6 +208,7 @@ def run_fixed(
     mask_mode="matlab_v4",
     device="cuda",
     rana=False,
+    render_image=True,
 ):
     """MATLAB v4 masks and arithmetic PSF averaging; 65x65 sites per beam by default.
 
@@ -218,13 +219,14 @@ def run_fixed(
     if rana is not False and rana is not None:
         options = locals().copy()
         options['rana'] = False
+        options['render_image'] = False
         from .rana_addon import attach_rana, RanaAddon
         from .rana_ui import RanaStatus
         overall = time.perf_counter()
         with RanaStatus(rana.status_window if isinstance(rana,RanaAddon) else True):
             native = run_fixed(**options)
             start = time.perf_counter()
-            result = attach_rana(native,rana,config=config,volume=volume,device=device)
+            result = attach_rana(native,rana,config=config,volume=volume if render_image else None,device=device)
             result['timing_seconds'] = dict(native.get('timing_seconds',{}), rana=time.perf_counter()-start)
             result['native_total_seconds'] = native['total_seconds']
             result['total_seconds'] = time.perf_counter()-overall
@@ -263,13 +265,14 @@ def run_fixed(
                 count_per_axis=count_per_axis,
                 mask_mode=mask_mode,
                 device=device,
+                render_image=render_image,
             )
             for name, field in input_pupil.items()
         }
         return {
             "channels": channels,
             "beam_weights": weights,
-            "image": sum(weights[k] * v["image"] for k, v in channels.items()),
+            **({"image": sum(weights[k] * v["image"] for k, v in channels.items())} if render_image else {}),
             "points_um": points,
             "unique_optical_paths": len(points) * len(channels),
             "unique_optical_positions": len(points),
@@ -296,10 +299,11 @@ def run_fixed(
         raise ValueError("Invalid pupil phase units/aperture")
     if input_pupil is not None and custom_phase is not None:
         raise ValueError("Supply either input_pupil or custom_phase; compose the field explicitly")
-    volume = np.asarray(volume, np.float32)
     expected = tuple(np.round(np.asarray(config.volume_um) * config.vres).astype(int))
-    if volume.shape != expected or not np.isfinite(volume).all():
-        raise ValueError(f"Expected finite volume of shape {expected}")
+    if render_image:
+        volume = np.asarray(volume, np.float32)
+        if volume.shape != expected or not np.isfinite(volume).all():
+            raise ValueError(f"Expected finite volume of shape {expected}")
     started = time.perf_counter()
     timings = {}
     supplied = raw_fields is not None
@@ -320,7 +324,7 @@ def run_fixed(
     col = (
         collection_mask(vessels, config)
         if vessels is not None
-        else np.ones(volume.shape[:2], np.float32)
+        else np.ones(expected[:2], np.float32)
     )
     timings["fields_and_collection"] = time.perf_counter() - t
     # Imports are lazy: the CPU reference package has no CuPy dependency.
@@ -365,7 +369,7 @@ def run_fixed(
         result = assemble(
             config,
             outputs,
-            volume.shape[:2],
+            expected[:2],
             mask_mode=mask_mode,
             z_positions=plan.z_positions,
             cut=plan.cut,
@@ -373,17 +377,18 @@ def run_fixed(
         result["colmask"] = col
         timings["aggregation"] = time.perf_counter() - t
         t = time.perf_counter()
-        result["image"] = (
-            zstack(
-                volume,
-                result["psf"].astype(np.float32),
-                mask=result["mask"].astype(np.float32),
-                collection_mask=col,
-                device=device,
+        if render_image:
+            result["image"] = (
+                zstack(
+                    volume,
+                    result["psf"].astype(np.float32),
+                    mask=result["mask"].astype(np.float32),
+                    collection_mask=col,
+                    device=device,
+                )
+                .cpu()
+                .numpy()
             )
-            .cpu()
-            .numpy()
-        )
         timings["static_scan"] = time.perf_counter() - t
     result["timing_seconds"] = timings
     result["total_seconds"] = time.perf_counter() - started

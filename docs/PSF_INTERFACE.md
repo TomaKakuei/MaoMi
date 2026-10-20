@@ -113,3 +113,10 @@ self-contained example and checker above to verify your generated output.
 Choose and validate the PSF field grid for your optical problem. The native
 3-D NAOMi-derived propagation/movie route remains separate; automatic coupling,
 depth/spectral kernels and coherent fields are future extensions.
+
+## XYZ providers and native pupil coupling
+
+The [workflow guide](WORKFLOWS.md#connect-rayoptics-or-a-wave-solver) describes
+`PSFVolume`, effective multiphoton conversion, RayOptics XYZ fields and complex
+pupil coupling to native tissue scattering. The 2-D contracts above remain
+unchanged.

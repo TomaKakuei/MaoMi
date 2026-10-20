@@ -1,17 +1,17 @@
 # Public snapshot
 
-MaoMi 0.7.0.dev1 connects **RANA — Ray Aware Nonuniform Acquisition** as an
-optional add-on to the existing acquisition pipeline.
-See the [README](../README.md), [one-page overview](TECHNICAL_REPORT.pdf),
-[integration guide](RANA_MODE.md) and [OSF datasets](DATASETS.md).
+MaoMi 0.8.0.dev0 connects source anatomy to standard/RANA acquisition through
+one CPU/CUDA workflow. Author: Yueze Wang.
 
 ```sh
-python -m pip install ".[examples]"
-python examples/rana_movie.py --rana --output artifacts/movie
+python -m pip install ".[mat,examples]"
+python -m maomi run --config examples/scene.json --output artifacts/movie
 python -m unittest discover -s tests -v
 ```
 
-The source includes code, tests, examples and public documentation, with
-checksums in `MANIFEST.sha256`. Local experiments, arrays, logs and backups
-are excluded. Native CUDA propagation uses the `cuda` extra and CUDA-enabled
-PyTorch; RayOptics uses the `optics` extra. CPU CI covers Python 3.11/3.12.
+See [README](../README.md), [workflow guide](WORKFLOWS.md), [original datasets](DATASETS.md)
+and [one-page overview](TECHNICAL_REPORT.pdf). Source checksums are in
+`MANIFEST.sha256`. Local source volumes, experimental outputs, logs, backups
+and development environments are excluded. Native CUDA needs the CUDA extra
+and CUDA-enabled PyTorch; RayOptics needs the optics extra. CPU CI covers
+Python 3.11/3.12 on Windows/Linux.

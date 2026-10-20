@@ -10,6 +10,11 @@ from .runtime import simulate
 
 
 def main(argv=None):
+    import sys
+    argv = sys.argv[1:] if argv is None else argv
+    if argv and argv[0] in ("run", "resume", "inspect"):
+        from .workflow_cli import main as workflow_main
+        return workflow_main(argv)
     selector = argparse.ArgumentParser(add_help=False)
     selector.add_argument("--mode", choices=["standard", "rana"], default="standard",
                           help="standard: MATLAB-compatible; rana: complete custom local PSFs")

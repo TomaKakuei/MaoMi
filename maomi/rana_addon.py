@@ -6,6 +6,7 @@ Native source-energy and collection masks, tails and detector stages stay in
 their existing pipeline. Custom fields keep their explicit operator and gains.
 """
 from dataclasses import dataclass
+from collections import OrderedDict
 import numpy as np
 from scipy import fft
 from .enhanced import FullFieldPSF
@@ -57,6 +58,8 @@ class RanaOperator:
         if self.device != 'cpu' and not self.device.startswith('cuda'):
             raise ValueError('device must be cpu or cuda[:index]')
         self._cache = {}
+        self._plans = OrderedDict()
+        self._scan_kernels = {}
         self.settings = {'enabled': True, 'operator': 'native_scan' if native else self.field.operator,
             'interpolation': 'positive local cubic tensor weights',
             'field_nodes': list(self.field.kernels.shape[:2]), 'kernel_shape': list(self.kernel_shape),
@@ -87,57 +90,45 @@ class RanaOperator:
             raise ValueError('RANA depth bank does not cover the requested acquisition depths')
         return np.stack([np.interp(z, self.bank.depths_um, row) for row in np.eye(len(self.fields))])
 
-    def _convolve(self, source, kernel, *, plane=False, correlate=False):
-        if correlate:
-            kernel = np.flip(kernel, axis=(0, 1) if plane else (0, 1, 2))
-        dims = (0, 1) if plane else (0, 1, 2)
-        lengths = tuple(fft.next_fast_len(source.shape[d]+kernel.shape[d]-1) for d in dims)
-        if self.device == 'cpu':
-            spec = fft.rfftn(source, s=lengths, axes=dims)*fft.rfftn(kernel, s=lengths, axes=dims)
-            if plane:
-                spec = spec.sum(axis=2)
-            full = fft.irfftn(spec, s=lengths, axes=dims)
-        else:
-            import torch
-            if not torch.cuda.is_available():
-                raise RuntimeError('CUDA-enabled PyTorch is required')
-            a, k = [torch.as_tensor(np.array(v, order='C', copy=True), dtype=torch.float64, device=self.device) for v in (source,kernel)]
-            spec = torch.fft.rfftn(a, s=lengths, dim=dims)*torch.fft.rfftn(k, s=lengths, dim=dims)
-            if plane:
-                spec = spec.sum(dim=2)
-            full = torch.fft.irfftn(spec, s=lengths, dim=dims).cpu().numpy()
-        centers = [(kernel.shape[d]-1-kernel.shape[d]//2) if correlate else kernel.shape[d]//2 for d in dims]
-        return full[tuple(slice(c,c+source.shape[d]) for c,d in zip(centers,dims))]
+    def clear_cache(self):
+        """Release prepared kernel FFTs and device-side interpolation weights."""
+        self._plans.clear()
+        self._scan_kernels.clear()
+        self._cache.clear()
+
+    @property
+    def cache_info(self):
+        names = ('kernel_fft_builds','cache_hits')
+        return dict(plans=len(self._plans),
+                    fft_bytes=sum(p.cache_bytes for p in self._plans.values()),
+                    **{k:sum(p.stats[k] for p in self._plans.values()) for k in names})
 
     def _project(self, source, kernels, *, plane=False):
-        wx, wy = self._weights(source.shape)
-        result = np.zeros(source.shape[:2] if plane else source.shape)
-        detection = not self.native and self.field.operator == 'detection'
-        correlate = not self.native and self.field.operator == 'excitation'
-        for i in range(len(wx)):
-            for j in range(len(wy)):
-                xi, yi = np.flatnonzero(wx[i]), np.flatnonzero(wy[j])
-                if len(xi) == 0 or len(yi) == 0:
-                    continue
-                kernel = kernels[i,j]
-                if detection:
-                    # Source-local fields: weights act before convolution.
-                    w = wx[i,:,None]*wy[j,None,:]
-                    result += self._convolve(source*w[...,None], kernel, plane=plane)
-                else:
-                    # Scan-local fields: compute only their compact output tile,
-                    # with enough input halo for an exact linear convolution.
-                    lo = np.array([xi[0],yi[0]])
-                    hi = np.array([xi[-1]+1,yi[-1]+1])
-                    halo = np.array(kernel.shape[:2])
-                    start = np.maximum(0, lo-halo)
-                    end = np.minimum(source.shape[:2], hi+halo)
-                    tile = source[start[0]:end[0],start[1]:end[1]]
-                    response = self._convolve(tile, kernel, plane=plane, correlate=correlate)
-                    response = response[lo[0]-start[0]:hi[0]-start[0],lo[1]-start[1]:hi[1]-start[1]]
-                    w = wx[i,lo[0]:hi[0],None]*wy[j,None,lo[1]:hi[1]]
-                    result[lo[0]:hi[0],lo[1]:hi[1]] += response*(w if plane else w[...,None])
-        return result
+        from ._local_fft import LocalFFTPlan
+        key = (tuple(source.shape),id(kernels),plane)
+        if key not in self._plans:
+            limit = max(2,2*len(self.fields))
+            while len(self._plans) >= limit:
+                self._plans.popitem(last=False)[1].clear()
+            self._plans[key] = LocalFFTPlan(source.shape,kernels,self._weights(source.shape),
+                plane=plane,detection=not self.native and self.field.operator == 'detection',
+                correlate=not self.native and self.field.operator == 'excitation',
+                device=self.device,cache_mb=256/limit)
+        self._plans.move_to_end(key)
+        return self._plans[key](source)
+
+    def _device_array(self, a):
+        if self.device == 'cpu':
+            return a
+        import torch
+        if not torch.cuda.is_available():
+            raise RuntimeError('CUDA-enabled PyTorch is required')
+        return torch.as_tensor(np.array(a,copy=True,order='C'),dtype=torch.float64,device=self.device)
+
+    def _finish(self, result):
+        if self.device != 'cpu':
+            result = result.cpu().numpy()
+        return np.maximum(result,0.)
 
     @staticmethod
     def physical_tail(values):
@@ -163,13 +154,15 @@ class RanaOperator:
         a = self._density(volume)
         z = self.z_origin_um+(np.arange(a.shape[2])+.5)*self.voxel_size_um[2]
         weights = self._depth_weights(z)
-        result = np.zeros_like(a)
+        a = self._device_array(a)
+        result = a*0
         detection = not self.native and self.field.operator == 'detection'
         for f,w in zip(self.fields,weights):
             if not np.any(w):
                 continue
-            result += self._project(a*w if detection else a, f.kernels)*(1 if detection else w)
-        return np.maximum(result,0.)
+            wd = self._device_array(w)
+            result += self._project(a*wd if detection else a, f.kernels)*(1 if detection else wd)
+        return self._finish(result)
 
     def scan_slab(self, slab, *, z_start=0, scan_avg=1):
         a = self._density(slab)
@@ -181,23 +174,33 @@ class RanaOperator:
         z = self.z_origin_um+(z_start+np.arange(a.shape[2])+.5)*self.voxel_size_um[2]
         detection = not self.native and self.field.operator == 'detection'
         weights = self._depth_weights(z if detection else [z[center]])
-        result = np.zeros(a.shape[:2])
-        for f,w in zip(self.fields,weights):
+        if scan_avg > 1:
+            starts = np.arange(0,a.shape[2],scan_avg)
+        a = self._device_array(a)
+        result = a.sum(axis=2)*0
+        for index,(f,w) in enumerate(zip(self.fields,weights)):
             if not np.any(w):
                 continue
-            kernels = f.kernels
-            source = a*w if detection else a
-            if detection:
-                # At output focal plane center, offset is center - source_z.
-                ids = 2*center-np.arange(a.shape[2])
-                kernels = np.take(kernels, np.minimum(ids,a.shape[2]-1), axis=-1).copy()
-                kernels[...,ids >= a.shape[2]] = 0
+            source = a*self._device_array(w) if detection else a
+            key = (index,scan_avg,detection)
+            if key not in self._scan_kernels:
+                kernels = f.kernels
+                if detection:
+                    ids = 2*center-np.arange(a.shape[2])
+                    kernels = np.take(kernels,np.minimum(ids,a.shape[2]-1),axis=-1).copy()
+                    kernels[...,ids >= a.shape[2]] = 0
+                if scan_avg > 1:
+                    kernels = np.add.reduceat(kernels,starts,axis=-1)
+                self._scan_kernels[key] = kernels
             if scan_avg > 1:
-                starts = np.arange(0,a.shape[2],scan_avg)
-                source = np.add.reduceat(source, starts, axis=2)
-                kernels = np.add.reduceat(kernels, starts, axis=-1)
-            result += self._project(source,kernels,plane=True)*(1 if detection else w[0])
-        return np.maximum(result,0.)
+                if self.device == 'cpu':
+                    source = np.add.reduceat(source,starts,axis=2)
+                else:
+                    import torch
+                    source = torch.stack([source[...,s:s+scan_avg].sum(-1) for s in starts],dim=-1)
+            result += self._project(source,self._scan_kernels[key],plane=True)*(1 if detection else w[0])
+        return self._finish(result)
+
 
 
 def attach_rana(optics, rana=True, *, config=None, volume=None, device=None):

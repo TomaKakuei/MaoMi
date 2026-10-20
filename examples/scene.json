@@ -1,0 +1,19 @@
+{
+  "preset": "compact",
+  "optical": {
+    "volume_um": [32, 32, 20],
+    "depth_um": 10,
+    "psf_um": [4, 4, 4],
+    "tail_um": 5,
+    "vres": 1
+  },
+  "run": {
+    "device": "cpu",
+    "rana": true,
+    "count_per_axis": 3,
+    "chunk_frames": 4,
+    "seed": 19
+  },
+  "activity": {"frames": 8, "fps": 30, "rate_hz": 1},
+  "acquisition": {"scan_buff": 2, "scan_avg": 1, "sfrac": 1, "motion": false}
+}

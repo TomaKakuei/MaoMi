@@ -40,6 +40,7 @@ class OpticalConfig:
     seed: int = 20260927
     scaling: str = "two-photon"
     temporal_length_um: float = 10.0
+    zernike_weights: tuple = ()
 
     def parameters(self):
         excitation_order(self)
@@ -58,6 +59,7 @@ class OpticalConfig:
             n_diff=self.n_diff,
             propcrop=self.propcrop,
             fastmask=False,
+            zernikeWt=np.asarray(self.zernike_weights,dtype=float).ravel() if len(self.zernike_weights) else None,
         )
         v = legacy.VolParams(
             vol_sz=np.array(self.volume_um), vres=self.vres, vol_depth=self.depth_um, verbose=0
@@ -90,6 +92,8 @@ def pupil(
 ):
     """Phase has explicit units and pupil coordinates; no low-order subtraction."""
     v, p = config.parameters()
+    if custom_phase is not None:
+        p.zernikeWt = None  # MATLAB custom_phase replaces its default Zernike screen.
     u = legacy.generate_ba(v, p, device=torch.device(device))
     if custom_phase is None:
         return u
@@ -165,22 +169,29 @@ def prepare_fields(config, vessels=None, *, device="cpu", scatter=True):
     if nc % pc:
         raw[2][..., -1] *= (nc % pc) / pc
     if vessels is not None:
-        ves = torch.as_tensor(vessels, device=device, dtype=torch.float32)
+        if not hasattr(vessels,"shape"):
+            vessels = np.asarray(vessels)
         required = (shapes[0][0], shapes[0][1], za + zb + nc)
-        if any(a < b for a, b in zip(ves.shape, required)):
-            raise ValueError(f"Padded vessels need at least {required}, got {tuple(ves.shape)}")
-        ves = ves[: required[0], : required[1], : required[2]]
+        if any(a < b for a, b in zip(vessels.shape, required)):
+            raise ValueError(f"Padded vessels need at least {required}, got {tuple(vessels.shape)}")
+        def read(x,y,z):
+            a = vessels[x,y,z]
+            if isinstance(a,torch.Tensor):
+                return a.to(device=device,dtype=torch.float32)
+            return torch.as_tensor(np.asarray(a), device=device, dtype=torch.float32)
+        xs,ys = slice(0,required[0]),slice(0,required[1])
         chunks = []
         end = za % pc or pc
         start = 0
         while start < za:
-            chunks.append(ves[..., start:end].sum(-1))
+            chunks.append(read(xs,ys,slice(start,end)).sum(-1))
             start = end
             end = min(za, end + pc)
         occA = torch.stack(chunks, -1)
         off = (n - n2) // 2
-        occB = ves[off : off + shapes[1][0], off : off + shapes[1][1], za : za + zb]
-        occC = legacy.groupzproject(ves[..., za + zb : za + zb + nc], pc)
+        occB = read(slice(off,off+shapes[1][0]),slice(off,off+shapes[1][1]),slice(za,za+zb))
+        occC = torch.stack([read(xs,ys,slice(z,min(z+pc,za+zb+nc))).sum(-1)
+                            for z in range(za+zb,za+zb+nc,pc)],-1)
         for i, occ in enumerate((occA, occB, occC)):
             raw[i] = occ + raw[i] * (1 - occ / (1 if i == 1 else pc))
     return raw
@@ -372,7 +383,7 @@ def propagate(
 
 def collection_mask(vessels, config):
     """Port of NAOMi's depth-dependent collection disk and hemoglobin absorption."""
-    a = np.asarray(vessels, np.float32)
+    a = vessels if hasattr(vessels,"shape") else np.asarray(vessels)
     r = config.vres
     pc = int(round(config.prop_um * r))
     total = np.zeros(a.shape[:2], np.float32)
@@ -397,7 +408,7 @@ def collection_mask(vessels, config):
         disk = disk[lo[0] : hi[0], lo[1] : hi[1]]
         disk /= disk.sum()
         # Disk is odd-sized, so scipy's same crop equals MATLAB's.
-        total += fftconvolve(a[..., start : start + pc].sum(-1), disk, mode="same")
+        total += fftconvolve(np.asarray(a[..., start : start + pc],np.float32).sum(-1), disk, mode="same")
     shape = np.round(np.array(config.volume_um[:2]) * r).astype(int)
     offsets = (np.array(total.shape) - shape) // 2
     total = total[offsets[0] : offsets[0] + shape[0], offsets[1] : offsets[1] + shape[1]]

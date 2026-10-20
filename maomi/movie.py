@@ -409,7 +409,9 @@ def scan_volume(
     noise_draws=None,
     bleed_uniforms=None,
     rng=None,
-    add_noise=True
+    add_noise=True,
+    start_frame=0,
+    frame_seed=None,
 ):
     """Collect iter_scan_volume frames into the traditional in-memory result."""
     clean = []
@@ -429,6 +431,8 @@ def scan_volume(
         bleed_uniforms=bleed_uniforms,
         rng=rng,
         add_noise=add_noise,
+        start_frame=start_frame,
+        frame_seed=frame_seed,
     ):
         clean.append(frame["clean"])
         positions.append(frame["motion"])
@@ -460,7 +464,9 @@ def iter_scan_volume(
     noise_draws=None,
     bleed_uniforms=None,
     rng=None,
-    add_noise=True
+    add_noise=True,
+    start_frame=0,
+    frame_seed=None,
 ):
     """Aligned cytosolic or nuclear scan_volume interface with sparse NAOMi components.
 
@@ -483,6 +489,8 @@ def iter_scan_volume(
             bleed_uniforms=bleed_uniforms,
             rng=rng,
             add_noise=add_noise,
+        start_frame=start_frame,
+        frame_seed=frame_seed,
         )
         return
     started = time.perf_counter()
@@ -498,7 +506,7 @@ def iter_scan_volume(
     psf = np.asarray(optics["psf"], np.float32)
     rana = optics.get('rana')
     depth = psf.shape[2] if rana is None else rana.kernel_shape[2]
-    shape = tuple(np.asarray(neurons["neur_vol"]).shape)
+    shape = tuple(neurons["neur_vol"].shape)
     n, m, nz = shape
     common = None
     if optics.get("mask") is not None:
@@ -538,26 +546,13 @@ def iter_scan_volume(
     if isinstance(raw_bg, np.ndarray) and raw_bg.shape == (2,):
         raw_bg = [raw_bg]
     bg = [component(ids, values) for ids, values in raw_bg]
-    soma_activity = np.atleast_2d(activity["soma"]).astype(np.float32)
-    nt = soma_activity.shape[1]
-    activities = [
-        soma_activity,
-        np.atleast_2d(activity.get("dend", soma_activity)).astype(np.float32),
-        np.atleast_2d(activity.get("bg", np.zeros((len(bg), nt)))).astype(np.float32),
-    ]
-    if (
-        activities[0].shape[0] != len(soma)
-        or activities[1].shape[0] != len(dend)
-        or activities[2].shape[0] != len(bg)
-    ):
-        raise ValueError("Component/activity counts differ")
-    nucleus_activity = activities[0].copy() if nuclear else None
-    if nuclear:
-        activities = [np.zeros_like(a) for a in activities]
-    mins = [a.min(axis=1) for a in activities]
-    delta = [a - mi[:, None] for a, mi in zip(activities, mins)]
-    for a in delta:
-        a[a < 0.01] = 0
+    from ._movie_buffers import ActivitySource, SparseMovieBuffer
+    source = ActivitySource(activity,(len(soma),len(dend),len(bg)),
+                            chunk_frames=p.get("chunk_frames",256))
+    nt = source.frames
+    if not isinstance(start_frame,(int,np.integer)) or not 0 <= start_frame <= nt:
+        raise ValueError("start_frame must be between zero and frame count")
+    mins = [np.zeros_like(v) if nuclear else v for v in source.minima]
     base = np.zeros(np.prod(shape), np.float32)
     for (ids, values), amp in zip(soma, mins[0]):
         base[ids] = values * amp
@@ -573,17 +568,15 @@ def iter_scan_volume(
     for (ids, values), amp in zip(bg, mins[2]):
         np.add.at(base, ids, values * amp)
     nucleus = []
-    nucleus_delta = None
     if nuclear:
-        # Upstream subtracts bg_min here, not nuc_min; retain that behavior.
-        nucleus_delta = (
-            nucleus_activity.copy()
-        )  # Background is identically zero in this mode; its row count is irrelevant.
-        nucleus_delta[nucleus_delta < 0.01] = 0
         for j, (ids, values) in enumerate(raw_nuc):
             ids, values = component(ids, 1.0 if common is not None else values)
             nucleus.append((ids, values))
-            base[ids] = values * nucleus_activity[j].min()
+            base[ids] = values * source.minima[0][j]
+        if len(nucleus) > len(soma):
+            raise ValueError("Nuclear component count exceeds the soma/activity count")
+    writer = SparseMovieBuffer(shape,((soma,False),(nucleus,False),(dend,False),(bg,True)),
+                               backend=p.get("sparse_backend","auto"))
     base = base.reshape(shape, order="F")
     defaults = _noise_defaults(noise)
     scale = (
@@ -629,21 +622,11 @@ def iter_scan_volume(
         )
     if len(motion) != nt:
         raise ValueError("One motion record per frame is required")
-    for t in range(nt):
-        temp = np.zeros(np.prod(shape), np.float32)
-        for groups, changes, add in [
-            (soma, delta[0], False),
-            (nucleus, nucleus_delta, False),
-            (dend, delta[1], False),
-            (bg, delta[2], True),
-        ]:
-            for j, (ids, values) in enumerate(groups):
-                if changes[j, t] > 0:
-                    if add:
-                        np.add.at(temp, ids, values * changes[j, t])
-                    else:
-                        temp[ids] = values * changes[j, t]
-        temp = temp.reshape(shape, order="F")
+    for t in range(start_frame,nt):
+        amplitudes = source.frame(t,nuclear)
+        if nuclear:
+            amplitudes[1] = amplitudes[1][:len(nucleus)]
+        temp = writer.frame(amplitudes)
         position = motion[t]
         z = int(position["z"]) - 1
         if z < 0 or z + depth > nz:
@@ -681,16 +664,17 @@ def iter_scan_volume(
         else:
             frame = (sf * sf * _resize_bilinear(frame, 1 / sf)).astype(np.float32)
         noisy_frame = None
+        frame_rng = np.random.default_rng(np.random.SeedSequence([frame_seed,t])) if frame_seed is not None else rng
         if add_noise:
             noisy_frame = detector_noise(
-                frame, defaults, draws=None if noise_draws is None else noise_draws[t], rng=rng
+                frame, defaults, draws=None if noise_draws is None else noise_draws[t], rng=frame_rng
             )
             noisy_frame = pixel_bleed(
                 noisy_frame,
                 defaults["bleedp"],
                 defaults["bleedw"],
                 uniform=None if bleed_uniforms is None else bleed_uniforms[t],
-                rng=rng,
+                rng=frame_rng,
             )
             noisy_frame = noisy_frame.astype(np.float32)
         yield {
@@ -750,7 +734,9 @@ def _iter_multibeam(
     noise_draws,
     bleed_uniforms,
     rng,
-    add_noise
+    add_noise,
+    start_frame=0,
+    frame_seed=None,
 ):
     """Scan each incoherent beam, share motion, then apply the detector once."""
     channels = optics["channels"]
@@ -764,8 +750,8 @@ def _iter_multibeam(
         raise ValueError("Invalid beam weights")
     p = {"scan_buff": 10, "scan_avg": 2, "sfrac": 2, "motion": True, "zoffset": 0}
     p.update(scan or {})
-    shape = np.asarray(neurons["neur_vol"]).shape
-    nt = np.atleast_2d(activity["soma"]).shape[1]
+    shape = neurons["neur_vol"].shape
+    nt = activity["soma"].shape[1] if hasattr(activity["soma"],"shape") and len(activity["soma"].shape)==2 else np.atleast_2d(activity["soma"]).shape[1]
     depths = {o['rana'].kernel_shape[2] if o.get('rana') is not None else np.asarray(o['psf']).shape[2] for o in channels.values()}
     if len(depths) != 1:
         raise ValueError("Beams must share focal depth and acquisition geometry")
@@ -782,26 +768,27 @@ def _iter_multibeam(
         )
     streams = {
         key: iter_scan_volume(
-            neurons, value, activity, p, spikes=spikes, tpm=tpm, motion=motion, add_noise=False
+            neurons, value, activity, p, spikes=spikes, tpm=tpm, motion=motion, add_noise=False, start_frame=start_frame
         )
         for key, value in channels.items()
     }
     defaults = _noise_defaults(noise)
     started = time.perf_counter()
-    for t in range(nt):
+    for t in range(start_frame,nt):
+        frame_rng = np.random.default_rng(np.random.SeedSequence([frame_seed,t])) if frame_seed is not None else rng
         items = {k: next(v) for k, v in streams.items()}
         clean = sum(weights[k] * v["clean"] for k, v in items.items()).astype(np.float32)
         noisy = None
         if add_noise:
             noisy = detector_noise(
-                clean, defaults, draws=None if noise_draws is None else noise_draws[t], rng=rng
+                clean, defaults, draws=None if noise_draws is None else noise_draws[t], rng=frame_rng
             )
             noisy = pixel_bleed(
                 noisy,
                 defaults["bleedp"],
                 defaults["bleedw"],
                 uniform=None if bleed_uniforms is None else bleed_uniforms[t],
-                rng=rng,
+                rng=frame_rng,
             ).astype(np.float32)
         first = next(iter(items.values()))
         yield dict(

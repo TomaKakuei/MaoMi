@@ -54,50 +54,37 @@ Reblurring a TIFF is not a new forward simulation of the original tissue.
 ## Reuse MATLAB source data
 
 [Figure3_largeVolume.mat](https://osf.io/download/b4jky/) is listed at
-4,042,087,963 bytes. Derived analysis MAT files contain different variables
-from simulator input files. Inspect the actual file before selecting inputs:
-
-```python
-from scipy.io import whosmat, loadmat
-
-print(whosmat("input.mat"))  # MATLAB v5-v7.2
-data = loadmat("input.mat", simplify_cells=True)
-print([key for key in data if not key.startswith("__")])
-```
-
-For v7.3 use `h5py` (`pip install ".[reproduce]"`) to inspect datasets and
-attributes. Decode MATLAB struct/cell references and stored axis order before
-passing arrays to MaoMi; a raw HDF5 array conversion is not a struct loader.
-
-| Scanner argument | Expected representation |
-| --- | --- |
-| `neurons` | `neur_vol` XYZ; `gp_vals` rows `(indices, values, is_soma)`; optional `gp_nuc` / `bg_proc` |
-| Sparse indices | **One-based MATLAB column-major**; do not subtract one before calling the scanner |
-| `activity` | `soma`, `dend`, `bg`: components-by-time with matching component counts |
-| `optics` | `run_fixed` / `run_optics` output, or `psf` plus applicable masks and tails |
-| `scan` | `scan_buff`, `scan_avg`, `sfrac`, `nuc_label`, etc. |
-| `motion` | Optional per-frame one-based `x`, `y`, `z`; reuse the recorded path for replay |
-
-After decoding the source structures:
-
-```python
-from maomi import attach_rana, RanaAddon
-from maomi.movie import scan_volume
-
-# Set pitch from the source dataset's physical voxel size.
-local_optics = attach_rana(optics, RanaAddon(voxel_size_um=pitch))
-movie = scan_volume(neurons, local_optics, activity, scan, add_noise=False)
-```
-
-Native attachment needs `points_um` and `psf_3d` from propagation. A MAT file
-containing only a mean PSF cannot supply missing local shapes: propagate the
-source tissue or provide a complete custom field. See [RANA integration](RANA_MODE.md).
-Some original volumes were available by request rather than on OSF, as the
-paper explains.
-
-For an immediately runnable example with generated cells, activity, movies
-and ground truth, no download is needed:
+4,042,087,963 bytes. Inspect it without loading the volume, then use the
+public importer:
 
 ```sh
-python examples/rana_movie.py --rana --output artifacts/local_movie
+python -m pip install ".[mat]"
+python -m maomi inspect Figure3_largeVolume.mat
 ```
+
+```python
+from maomi import load_naomi_mat
+
+scene = load_naomi_mat(
+    "Figure3_largeVolume.mat",
+    roi=((400, 432), (400, 432), (60, 80)),
+    optical_overrides={"psf_um": (4, 4, 4), "tail_um": 5},
+)
+# source anatomy is retained at native sampling; no resize or tiling.
+scene.generate_activity(frames=30, seed=19)  # explicitly synthetic activity
+```
+
+This example keeps a small native-voxel region and explicitly chooses a focal
+kernel/tail that fits the stored vessel extent. Physical depth comes from the
+source. v5-v7.2 and v7.3 are supported; v7.3 arrays/cell rows are lazy by default.
+One-based MATLAB sparse indices are remapped to the ROI while component IDs
+remain aligned with activity. Missing traces are not fabricated.
+
+Use `activity_path` / `activity_key` to import recorded simulator traces;
+derived analysis MAT files are not automatically source anatomy. Native RANA
+requires local propagated PSFs or a supplied complete XYZ field; a mean PSF
+does not contain these missing local shapes.
+
+See [the complete workflow](WORKFLOWS.md) for CPU/CUDA acquisition, RANA,
+source parameter mapping, optical padding, checkpoints and training-data access.
+Some original source volumes were available by request, as the paper explains.

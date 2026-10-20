@@ -125,3 +125,9 @@ That renderer and the compact positive acquisition interpolator are distinct;
 the [published static comparison](RANA_COMPARISON.md) measures the former.
 
 See [API](API.md) and [OSF datasets](DATASETS.md).
+
+## Unified source workflow
+
+Use [Scene/RunConfig](WORKFLOWS.md) to import original MAT files, prepare optics
+once and run/resume the same standard or RANA acquisition on CPU/CUDA. XYZ
+RayOptics and wave-provider examples feed this acquisition interface directly.
