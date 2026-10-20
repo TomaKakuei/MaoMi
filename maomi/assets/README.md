@@ -1,6 +1,6 @@
-# Rana cat
+# RANA cat
 
-`rana_cat.png` is the transparent pixel-art portrait used by Rana Mode's
+`rana_cat.png` is the transparent pixel-art portrait used by RANA Mode's
 rotating desktop indicator. It is derived from a photograph of the project
 owner's own cat, supplied for this purpose. The original photograph is not
 distributed. Runtime code renders the rotation with nearest-neighbor sampling.

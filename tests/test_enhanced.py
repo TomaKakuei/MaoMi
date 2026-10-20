@@ -1,4 +1,4 @@
-"""Rana local-kernel operator checks against explicit sums."""
+"""RANA local-kernel operator checks against explicit sums."""
 import tempfile
 import unittest
 from pathlib import Path

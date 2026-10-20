@@ -20,5 +20,6 @@
   ],
   "mode_expansion": "RANA - Ray Aware Nonuniform Acquisition",
   "public_comparison": "docs/RANA_COMPARISON.md",
-  "datasets": "docs/DATASETS.md"
+  "datasets": "docs/DATASETS.md",
+  "author": "Yueze Wang"
 }

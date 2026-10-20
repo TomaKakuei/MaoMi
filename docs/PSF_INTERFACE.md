@@ -8,7 +8,7 @@ registration, inheritance or dependency on the renderer.
 The APIs below describe the **basic bilinear detection renderer**. For strict
 full-field cubic imaging, including raster two-photon excitation and 3-D offset
 kernels, use [RANA Mode](ENHANCED_PSF.md). The contracts intentionally differ:
-basic fields permit edge extension and unit-sum shapes; Rana requires full
+basic fields permit edge extension and unit-sum shapes; RANA requires full
 coverage and retains local gain.
 
 ## Choose the smallest interface you need

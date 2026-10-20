@@ -4,6 +4,7 @@ from .scanning import zstack
 from .optics import OpticalConfig
 
 __version__ = "0.7.0.dev1"
+__author__ = "Yueze Wang"
 
 
 def run_fixed(*args, **kwargs):

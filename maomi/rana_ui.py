@@ -1,4 +1,4 @@
-"""Rana's optional desktop indicator, isolated from numerical computation.
+"""RANA's optional desktop indicator, isolated from numerical computation.
 
 Executed as a script by RanaStatus, so its UI process does not import PyTorch.
 Closing this window only dismisses the indicator. Closing the parent pipe ends
@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 
-MESSAGE = "MaoMi-Rana is working in background"
+MESSAGE = "MaoMi-RANA is working in background"
 ASSET = Path(__file__).with_name("assets") / "rana_cat.png"
 
 
@@ -105,7 +105,7 @@ def show_window(*, pipe=False, seconds=None, capture=None):
                 stop.set()
         threading.Thread(target=watch_parent, daemon=True).start()
     root = tk.Tk()
-    root.title("MaoMi — Rana Mode")
+    root.title("MaoMi — RANA Mode")
     root.configure(bg="#151b25")
     root.resizable(False, False)
     width, height = 420, 300
@@ -153,11 +153,11 @@ def main():
         show_window(pipe=args.pipe, seconds=args.seconds, capture=args.capture)
     except (ImportError, OSError, RuntimeError) as exc:
         if not args.pipe:
-            p.exit(1, f"Rana desktop indicator unavailable: {exc}\n")
+            p.exit(1, f"RANA desktop indicator unavailable: {exc}\n")
     except Exception as exc:
         # TclError includes missing displays and unavailable desktop sessions.
         if not args.pipe:
-            p.exit(1, f"Rana desktop indicator unavailable: {exc}\n")
+            p.exit(1, f"RANA desktop indicator unavailable: {exc}\n")
 
 
 if __name__ == "__main__":

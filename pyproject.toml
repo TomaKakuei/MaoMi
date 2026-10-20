@@ -7,6 +7,7 @@ name = "maomi-optics-preview"
 version = "0.7.0.dev1"
 description = "MaoMi: accelerated optical simulation with open PSF interfaces and procedural ground truth"
 readme = "README.md"
+authors = [{name = "Yueze Wang"}]
 requires-python = ">=3.11"
 dependencies = ["numpy>=2", "scipy>=1.14", "torch>=2.5", "pillow>=10"]
 license = {file = "LICENSE"}

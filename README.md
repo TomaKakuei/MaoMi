@@ -2,6 +2,8 @@
 
 **Modular anatomy and optics for Microscopy.** Faster simulation, open optics, programmable ground truth.
 
+**Author: Yueze Wang**
+
 MaoMi = **M**odular **a**natomy and **o**ptics for **Mi**croscopy.
 
 Built on **NAOMi (Neural Anatomy and Optical Microscopy)** by Song et al. (2021).

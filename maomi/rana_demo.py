@@ -1,4 +1,4 @@
-"""Self-contained custom-field input for the explicit Rana Mode demo."""
+"""Self-contained custom-field input for the explicit RANA Mode demo."""
 import numpy as np
 from .enhanced import FullFieldPSF
 

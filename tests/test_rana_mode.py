@@ -79,7 +79,7 @@ class RanaModeTests(unittest.TestCase):
         self.assertEqual(len(frames), 30)
         self.assertEqual(frames[0].size, (192, 192))
         self.assertFalse(np.array_equal(np.asarray(frames[0]), np.asarray(frames[8])))
-        self.assertEqual(MESSAGE, "MaoMi-Rana is working in background")
+        self.assertEqual(MESSAGE, "MaoMi-RANA is working in background")
 
     def test_cli_custom_input_output_and_mode_record(self):
         with tempfile.TemporaryDirectory() as tmp:

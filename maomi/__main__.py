@@ -91,7 +91,7 @@ def main(argv=None):
 def rana_main(p, argv):
     from .enhanced import FullFieldPSF
     from .rana_depth import DepthPSFBank
-    p.add_argument("--demo", action="store_true", help="Run a self-contained full-field Rana example")
+    p.add_argument("--demo", action="store_true", help="Run a self-contained full-field RANA example")
     p.add_argument("--psf-field", type=Path, help="FullFieldPSF NPZ with full XY coverage")
     p.add_argument("--volume", type=Path, help="Nonnegative XY/XYZ fluorescence NPY")
     p.add_argument("--origin-um", nargs=2, type=float, default=(0., 0.))
@@ -115,7 +115,7 @@ def rana_main(p, argv):
             volume, field = rana_demo()
     else:
         if not args.psf_field or not args.volume:
-            p.error("Rana Mode requires --psf-field and --volume, or --demo")
+            p.error("RANA Mode requires --psf-field and --volume, or --demo")
         try:
             volume = np.load(args.volume, allow_pickle=False)
             with np.load(args.psf_field, allow_pickle=False) as data:

@@ -1,4 +1,4 @@
-"""Rana Mode: full-field cubic PSF imaging, independent of native MATLAB assembly.
+"""RANA Mode: full-field cubic PSF imaging, independent of native MATLAB assembly.
 
 Every source (detection) or scan position (excitation) uses its own local kernel.
 XY field variation supports either XY or XYZ offset kernels. No average-PSF
@@ -126,7 +126,7 @@ class CubicFullFieldRenderer:
 
     def __init__(self, psf_field, shape, *, voxel_size_um, origin_um=(0., 0.), device="cpu"):
         if not isinstance(psf_field, FullFieldPSF):
-            raise TypeError("Rana Mode requires FullFieldPSF; a shared PSF is not accepted")
+            raise TypeError("RANA Mode requires FullFieldPSF; a shared PSF is not accepted")
         dims = psf_field.kernels.ndim - 2
         if len(shape) != dims or any(isinstance(n, bool) or int(n) != n or n < 1 for n in shape):
             raise ValueError("Image shape must contain positive integers matching kernel dimensions")

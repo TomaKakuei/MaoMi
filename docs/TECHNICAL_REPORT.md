@@ -2,6 +2,8 @@
 
 **Modular anatomy and optics for Microscopy.** Faster simulation, open optics, programmable ground truth.
 
+**Author: Yueze Wang**
+
 ## 1. Speed
 
 **49.1× measured optical-stage acceleration. 0.00667% image difference from MATLAB.**

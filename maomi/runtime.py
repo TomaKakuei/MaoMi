@@ -1,4 +1,4 @@
-"""Explicit standard / Rana Mode selection for scripts, notebooks and the CLI."""
+"""Explicit standard / RANA Mode selection for scripts, notebooks and the CLI."""
 import time
 import numpy as np
 
@@ -6,7 +6,7 @@ import numpy as np
 def simulate(volume, *, mode="standard", config=None, psf_field=None,
              voxel_size_um=None, origin_um=(0., 0.), device=None,
              status_window=True, z_origin_um=0., **native_options):
-    """Run MATLAB-compatible MaoMi or theoretically higher-accuracy Rana Mode.
+    """Run MATLAB-compatible MaoMi or theoretically higher-accuracy RANA Mode.
 
     Standard mode uses a native OpticalConfig. RANA accepts RanaConfig,
     FullFieldPSF or DepthPSFBank and retains local shape and gain. Its optional
