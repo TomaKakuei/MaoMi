@@ -211,6 +211,13 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("image",out)
         self.assertIn("rana",out)
 
+    def test_missing_tissue_extra_has_install_instructions(self):
+        from maomi import generate_scene
+        with patch.dict("sys.modules", {"numba": None}):
+            with self.assertRaisesRegex(ImportError, r"\.\[tissue\]"):
+                generate_scene(seed=19)
+
+    @unittest.skipUnless(importlib.util.find_spec("numba"), "Install the tissue extra")
     def test_compact_tissue_has_complete_parameters_and_finite_outputs(self):
         from maomi import generate_scene
         scene=generate_scene(seed=19)

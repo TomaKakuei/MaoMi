@@ -80,7 +80,7 @@ See the [integration guide](docs/RANA_MODE.md).
 One workflow for imported or generated tissue, CPU/CUDA and optional RANA:
 
 ```sh
-python -m pip install ".[mat,examples]"
+python -m pip install ".[mat,tissue,examples]"
 python -m maomi run --config examples/scene.json --output artifacts/scene
 python -m maomi inspect source_tissue.mat
 python -m maomi run --input source_tissue.mat --frames 300 --rana --output artifacts/imported

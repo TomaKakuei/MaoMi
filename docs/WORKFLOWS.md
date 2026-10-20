@@ -8,10 +8,10 @@ selects CPU/CUDA, optional RANA, noise, sampling and output chunks.
 ## Run a complete example
 
 ```sh
-python -m pip install ".[mat,examples]"
+python -m pip install ".[mat,tissue,examples]"
 python -m maomi run --config examples/scene.json --output artifacts/scene
-# Optional compiled sparse/tissue loops and CUDA:
-python -m pip install ".[tissue,cuda]"
+# Optional CUDA:
+python -m pip install ".[cuda]"
 python -m maomi run --config examples/scene.json --device cuda --output artifacts/scene_cuda
 ```
 

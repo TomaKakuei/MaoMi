@@ -57,6 +57,16 @@ def tissue_parameters(config=None,*,preset="compact",overrides=None):
 
 
 def generate_scene(config=None,*,preset="compact",overrides=None,seed=0):
+    try:
+        import numba
+    except ModuleNotFoundError as exc:
+        if exc.name != "numba":
+            raise
+        raise ImportError(
+            'Tissue generation requires Numba; install with '
+            '`python -m pip install "maomi-optics-preview[tissue]"` '
+            'or `python -m pip install ".[tissue]"` from the checkout.'
+        ) from exc
     from .tissue_pipeline import simulate_tissue
     from .scene import Scene
     cfg = config or OpticalConfig(volume_um=(32.,32.,20.),depth_um=10.,psf_um=(4.,4.,4.),tail_um=5.)
