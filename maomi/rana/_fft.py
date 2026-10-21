@@ -2,6 +2,7 @@
 from collections import OrderedDict, defaultdict
 import numpy as np
 from scipy import fft
+from ._backends import get_backend
 
 
 class LocalFFTPlan:
@@ -11,6 +12,7 @@ class LocalFFTPlan:
         self.plane, self.detection, self.correlate = plane, detection, correlate
         self.device, self.batch_size = device, batch_size if device != "cpu" else 1
         self.cuda = device != "cpu"
+        self.backend = get_backend(device)
         self.cache, self.cache_bytes = OrderedDict(), 0
         self.cache_limit = int(cache_mb*1024**2)
         self.stats = dict(kernel_fft_builds=0, cache_hits=0)
@@ -47,12 +49,7 @@ class LocalFFTPlan:
                 self.groups[(source_shape,lengths)].append((i,j,source_slice,target,response,self.array(w)))
 
     def array(self, a):
-        if not self.cuda:
-            return np.asarray(a, dtype=float)
-        import torch
-        if isinstance(a,torch.Tensor):
-            return a.to(device=self.device,dtype=torch.float64)
-        return torch.as_tensor(np.array(a,copy=True,order="C"),device=self.device,dtype=torch.float64)
+        return self.backend.array(a)
 
     def _kernel_fft(self, entries, lengths):
         key = (tuple((x[0],x[1]) for x in entries),lengths)
@@ -63,32 +60,20 @@ class LocalFFTPlan:
         a = np.stack([self.kernels[i,j] for i,j,*_ in entries])
         if self.correlate:
             a = np.flip(a, axis=(1,2) if self.plane else (1,2,3))
-        if self.cuda:
-            import torch
-            spec = torch.fft.rfftn(self.array(a),s=lengths,dim=self.dims)
-            size = spec.numel()*spec.element_size()
-        else:
-            spec = fft.rfftn(a,s=lengths,axes=self.dims)
-            size = spec.nbytes
+        spec = self.backend.rfftn(self.array(a),lengths,self.dims)
+        size = self.backend.nbytes(spec)
         self.stats["kernel_fft_builds"] += 1
         if size <= self.cache_limit:
             while self.cache and self.cache_bytes+size > self.cache_limit:
                 _, old = self.cache.popitem(last=False)
-                self.cache_bytes -= old.numel()*old.element_size() if self.cuda else old.nbytes
+                self.cache_bytes -= self.backend.nbytes(old)
             self.cache[key] = spec
             self.cache_bytes += size
         return spec
 
     def __call__(self, source):
-        if self.cuda:
-            import torch
-            source = self.array(source)
-            out = torch.zeros(self.shape[:2] if self.plane else self.shape,device=self.device,dtype=source.dtype)
-            stack = torch.stack
-        else:
-            source = np.asarray(source,float)
-            out = np.zeros(self.shape[:2] if self.plane else self.shape)
-            stack = np.stack
+        source = self.array(source)
+        out = self.backend.zeros(self.shape[:2] if self.plane else self.shape)
         for (_,lengths), group in self.groups.items():
             # Limit temporary batch spectra to about 128 MiB. A single tile is
             # always retained; the FFT cache has a separate bounded budget.
@@ -98,18 +83,12 @@ class LocalFFTPlan:
                 entries = group[start:start+batch_size]
                 parts = [source[sl]*w[...,None] if self.detection else source[sl]
                          for _,_,sl,_,_,w in entries]
-                tiles = parts[0][None] if len(parts)==1 else stack(parts)
+                tiles = parts[0][None] if len(parts)==1 else self.backend.stack(parts)
                 k = self._kernel_fft(entries,lengths)
-                if self.cuda:
-                    spec = torch.fft.rfftn(tiles,s=lengths,dim=self.dims)*k
-                    if self.plane:
-                        spec = spec.sum(dim=3)
-                    full = torch.fft.irfftn(spec,s=lengths,dim=self.dims)
-                else:
-                    spec = fft.rfftn(tiles,s=lengths,axes=self.dims)*k
-                    if self.plane:
-                        spec = spec.sum(axis=3)
-                    full = fft.irfftn(spec,s=lengths,axes=self.dims)
+                spec = self.backend.rfftn(tiles,lengths,self.dims)*k
+                if self.plane:
+                    spec = self.backend.sum(spec,axis=3)
+                full = self.backend.irfftn(spec,lengths,self.dims)
                 for n,(_,_,_,target,response,w) in enumerate(entries):
                     piece = full[(n,)+response]
                     out[target] += piece if self.detection else piece*(w if self.plane else w[...,None])

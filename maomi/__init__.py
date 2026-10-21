@@ -13,6 +13,7 @@ _EXPORTS = {
     "make_pupil": "pupils", "make_vtwins_pupils": "pupils", "simulate": "runtime",
     "FullFieldPSF": "rana", "CubicFullFieldRenderer": "rana",
     "RanaConfig": "rana", "RanaAddon": "rana", "RanaOperator": "rana",
+    "PSFProvider": "rana", "resolve_field": "rana",
     "DepthPSFBank": "rana", "DepthFullFieldRenderer": "rana",
     "VectorialOptics": "rana", "StratifiedMedium": "rana", "Acquisition": "rana",
     "PulseSpectrum": "rana", "EmissionResponse": "rana", "attach_rana": "rana",

@@ -36,6 +36,10 @@ RANA has its own [development core](docs/ARCHITECTURE.md) in `maomi/rana/`.
 Its fields, physics and renderer can run independently; a dedicated adapter
 connects them to MaoMi's current anatomy and acquisition pipeline.
 
+New solvers implement the [PSF provider protocol](docs/PROVIDERS.md) without
+changing MaoMi. Numerical fields, acquisition logic and CPU/CUDA backends have
+separate responsibilities.
+
 | Area | MaoMi | NAOMi.jl |
 | --- | --- | --- |
 | Execution | Batched CUDA propagation | CPU / FFTW |
@@ -105,10 +109,10 @@ Original datasets: **[NAOMi on OSF](https://osf.io/863j9/)**
 
 ## 4. What's next
 
-**RANA is the primary development direction.** The goal is to progressively
-replace the remaining NAOMi-derived components, then release RANA as an
-independent simulator succeeding the current NAOMi-based MaoMi. Its separate
-core and adapter boundary support that transition while keeping one user workflow.
+**RANA is the primary development direction for new optical capabilities.**
+MaoMi builds on NAOMi's anatomy and microscopy foundation. RANA develops
+complementary optics and acquisition models through a modular core, preserving
+NAOMi compatibility, attribution and one user workflow.
 
 Extend editable 3-D cells and dynamics, connect more optics and acquisition
 models, and calibrate simulations against real data. Generate programmable

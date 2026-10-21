@@ -1,3 +1,15 @@
+# RANA provider and backend boundaries - 20 October 2026
+
+- External optical providers implement `build_field()`; the same field can
+  enter the core or the shared Scene workflow without modifying MaoMi.
+- CPU/CUDA array operations live behind one internal backend contract. Optical
+  physics, interpolation and bounded FFT scheduling remain separate.
+- Commands, existing Python calls, numerical conventions and archive schemas
+  are preserved. Archives store resolved fields; external solvers are not
+  required for resume.
+- Added a runnable [custom provider example](PROVIDERS.md). RANA's development
+  direction emphasizes extensions built on NAOMi, with upstream credit retained.
+
 # Unified commands and independent RANA core - 20 October 2026
 
 - One `maomi` CLI: `run`, `render`, `resume`, `inspect`; only `--rana` enables RANA.

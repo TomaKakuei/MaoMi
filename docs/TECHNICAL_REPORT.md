@@ -49,6 +49,6 @@ See [RANA add-on](RANA_MODE.md), [physics and units](RANA_PHYSICS.md),
 
 ## 4. What's next
 
-Extend editable 3-D cells and dynamics, calibrate optical/tissue parameters against real data, and generate paired ground truth for denoising and reconstruction. RANA is the main development core, with a separate native adapter. The goal is to replace the remaining NAOMi-derived components and release RANA as an independent successor, preserving one user workflow.
+Extend editable 3-D cells and dynamics, calibrate against real data, and generate paired ground truth for denoising and reconstruction. Building on NAOMi's anatomy and microscopy foundation, RANA develops complementary optical capabilities. Provider, acquisition and CPU/CUDA backend boundaries support new models through the same user workflow.
 
 Built on [NAOMi, Song et al. (2021)](https://doi.org/10.1016/j.jneumeth.2021.109173).

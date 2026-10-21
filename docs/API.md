@@ -65,7 +65,10 @@ native local PSFs. Default `rana=False` retains the original behavior.
 previously propagated optics. The optional volume also produces a static image.
 `RanaAddon(field=None, voxel_size_um=None, origin_um=(0,0), z_origin_um=0,
 device=None, status_window=True)` uses native PSFs by default; `field` accepts
-`FullFieldPSF`, `DepthPSFBank`, `RanaConfig`, or a per-channel dictionary.
+`FullFieldPSF`, `DepthPSFBank`, any `PSFProvider` (including `RanaConfig`), or a
+per-channel mapping. Providers implement `build_field()` and return a sampled
+field or bank; no inheritance or registration is required. See the
+[provider contract and runnable example](PROVIDERS.md).
 Pitch must match the source volume. Custom banks use explicit depth coordinates.
 
 The returned mapping retains native masks, tails and descriptors and adds
@@ -161,6 +164,11 @@ see [the executable config](../examples/rana_physics.json).
 Pass `RanaAddon(field=config)` or `RanaAddon(field=bank)` to `run_scene` or
 `render_scene`. `maomi.rana.RanaOperator(bank).static(volume)` uses the core
 directly, independently of the host pipeline.
+
+`PSFProvider` and `resolve_field` are exported from `maomi` and `maomi.rana`.
+`RanaOperator(provider)` resolves a provider once at construction. Host
+attachment resolves it during optical preparation. Saved optics contain only
+numerical fields and provenance, so resume does not need the provider code.
 
 - `VectorialOptics`: complex vector field, polarization, Fresnel interfaces,
   custom pupil amplitude/OPD and radial/azimuth quadrature.

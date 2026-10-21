@@ -3,6 +3,8 @@ from collections import OrderedDict
 import numpy as np
 from .fields import FullFieldPSF
 from .depth import DepthPSFBank
+from .providers import resolve_field
+from ._backends import get_backend
 
 
 def _axis_weights(nodes, positions):
@@ -17,6 +19,7 @@ def _axis_weights(nodes, positions):
 
 class RanaOperator:
     def __init__(self, field, *, native=False, origin_um=(0., 0.), z_origin_um=0., device='cpu'):
+        field = resolve_field(field)
         self.bank = field if isinstance(field, DepthPSFBank) else None
         self.fields = field.fields if self.bank is not None else (field,)
         if any(not isinstance(f, FullFieldPSF) or f.kernels.ndim != 5 for f in self.fields):
@@ -29,8 +32,7 @@ class RanaOperator:
         if (self.origin_um.shape != (2,) or not np.isfinite(self.origin_um).all()
                 or not np.isfinite(self.z_origin_um)):
             raise ValueError('Supply finite XY and Z origins')
-        if self.device != 'cpu' and not self.device.startswith('cuda'):
-            raise ValueError('device must be cpu or cuda[:index]')
+        self._backend = get_backend(self.device)
         self._cache = {}
         self._plans = OrderedDict()
         self._scan_kernels = {}
@@ -92,17 +94,10 @@ class RanaOperator:
         return self._plans[key](source)
 
     def _device_array(self, a):
-        if self.device == 'cpu':
-            return a
-        import torch
-        if not torch.cuda.is_available():
-            raise RuntimeError('CUDA-enabled PyTorch is required')
-        return torch.as_tensor(np.array(a,copy=True,order='C'),dtype=torch.float64,device=self.device)
+        return self._backend.array(a)
 
     def _finish(self, result):
-        if self.device != 'cpu':
-            result = result.cpu().numpy()
-        return np.maximum(result,0.)
+        return np.maximum(self._backend.to_numpy(result),0.)
 
     @staticmethod
     def physical_tail(values):
@@ -167,10 +162,6 @@ class RanaOperator:
                     kernels = np.add.reduceat(kernels,starts,axis=-1)
                 self._scan_kernels[key] = kernels
             if scan_avg > 1:
-                if self.device == 'cpu':
-                    source = np.add.reduceat(source,starts,axis=2)
-                else:
-                    import torch
-                    source = torch.stack([source[...,s:s+scan_avg].sum(-1) for s in starts],dim=-1)
+                source = self._backend.group_sum(source,starts,scan_avg)
             result += self._project(source,self._scan_kernels[key],plane=True)*(1 if detection else w[0])
         return self._finish(result)

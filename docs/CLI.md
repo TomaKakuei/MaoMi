@@ -83,6 +83,9 @@ connected when a custom **focal** provider is selected.
 `rana.z_origin_um` declare coordinates; the latter defaults to the scene's
 lower depth. See [physics and units](RANA_PHYSICS.md) for optical gain conventions.
 
+External Python providers export the same field format; no additional command
+or switch is needed. See the [provider example](PROVIDERS.md).
+
 ## Checkpoint and resume
 
 ```sh

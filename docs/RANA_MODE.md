@@ -73,7 +73,8 @@ local_optics = attach_rana(
 movie = scan_volume(neurons, local_optics, activity, scan, add_noise=True)
 ```
 
-`field` accepts an XYZ-kernel `FullFieldPSF`, `DepthPSFBank` or `RanaConfig`.
+`field` accepts an XYZ-kernel `FullFieldPSF`, `DepthPSFBank`, `RanaConfig`, or
+any [PSF provider](PROVIDERS.md) implementing `build_field()`.
 For multiple beams pass one field or a dictionary keyed by channel.
 The custom provider supplies the focal optical model; it is not automatically
 propagated through a second, unrelated native pupil. Its response units,
@@ -110,8 +111,9 @@ declare `RanaAddon(voxel_size_um=(dx,dy,dz))`.
 
 RANA's canonical implementation lives in `maomi/rana/`; native host coupling is
 in `maomi/rana/adapters/naomi.py`. The [development map](ARCHITECTURE.md) describes
-how this supports gradually replacing NAOMi-derived components and eventually
-releasing RANA as an independent successor.
+the provider, acquisition and array-backend boundaries. RANA extends MaoMi's
+optical capabilities while building on NAOMi's anatomy and microscopy work;
+source attribution and the shared workflow remain explicit.
 
 `CubicFullFieldRenderer`, `DepthFullFieldRenderer` and `render_reference` expose
 the global cubic RBF reference operator used by the

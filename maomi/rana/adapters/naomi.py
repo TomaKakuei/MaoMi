@@ -1,8 +1,9 @@
 """Adapt native NAOMi-derived optics without changing the RANA core."""
 import numpy as np
+from collections.abc import Mapping
 from ..fields import FullFieldPSF
-from ..depth import DepthPSFBank
-from ..config import RanaConfig, RanaAddon
+from ..config import RanaAddon
+from ..providers import resolve_field
 from ..operator import RanaOperator
 
 def attach_rana(optics, rana=True, *, config=None, volume=None, device=None):
@@ -17,10 +18,10 @@ def attach_rana(optics, rana=True, *, config=None, volume=None, device=None):
     addon = RanaAddon() if rana is True else rana if isinstance(rana,RanaAddon) else RanaAddon(field=rana)
     selected_device = addon.device or device or 'cpu'
     if 'channels' in optics:
-        if isinstance(addon.field,dict) and set(addon.field) != set(optics['channels']):
+        if isinstance(addon.field,Mapping) and set(addon.field) != set(optics['channels']):
             raise ValueError('Supply one RANA field per optical channel')
         from dataclasses import replace
-        channels = {name: attach_rana(value,replace(addon,field=addon.field[name] if isinstance(addon.field,dict) else addon.field),
+        channels = {name: attach_rana(value,replace(addon,field=addon.field[name] if isinstance(addon.field,Mapping) else addon.field),
                     config=config,volume=volume,device=selected_device) for name,value in optics['channels'].items()}
         out = dict(optics, channels=channels)
         if volume is not None:
@@ -50,8 +51,8 @@ def attach_rana(optics, rana=True, *, config=None, volume=None, device=None):
             config.wavelength_um*1000 if config is not None else 920.,
             'excitation', {'source':'native per-position propagation','offset_convention':'MATLAB',
                            'local_gain':'retained in existing source mask'})
-    elif isinstance(field,RanaConfig):
-        field = field.build_field()
+    else:
+        field = resolve_field(field)
     expected_pitch = addon.voxel_size_um if addon.voxel_size_um is not None else ((1/config.vres,)*3 if config is not None else None)
     if expected_pitch is not None and not np.allclose(field.voxel_size_um, expected_pitch, rtol=1e-10, atol=1e-12):
         raise ValueError('RANA PSF voxel size must match the acquisition volume')

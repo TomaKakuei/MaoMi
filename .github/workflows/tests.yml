@@ -42,6 +42,10 @@ jobs:
       - run: python examples/enhanced_full_field.py --no-status-window --output artifacts/ci_enhanced
       - run: python -m maomi render --demo --rana --device cpu --no-status-window --output artifacts/ci_rana
       - run: python -m maomi run --demo --config examples/rana_physics.json --rana --output artifacts/ci_physics
+      - run: python examples/custom_rana_provider.py --output artifacts/ci_custom_bank.npz
+      - run: maomi render --demo --device cpu --rana --psf-field artifacts/ci_custom_bank.npz --output artifacts/ci_custom_static
+      - run: maomi run --demo --device cpu --rana --psf-field artifacts/ci_custom_bank.npz --output artifacts/ci_custom_movie --max-frames 3
+      - run: maomi resume artifacts/ci_custom_movie
       - name: Installed shared CLI outside the checkout
         working-directory: ${{ runner.temp }}
         run: maomi render --demo --rana --device cpu --no-status-window --output rana_installed

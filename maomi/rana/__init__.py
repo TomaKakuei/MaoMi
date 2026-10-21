@@ -7,4 +7,5 @@ from .fields import FullFieldPSF, CubicFullFieldRenderer
 from .depth import DepthPSFBank, DepthFullFieldRenderer
 from .physics import VectorialOptics, StratifiedMedium, Acquisition, PulseSpectrum, EmissionResponse
 from .operator import RanaOperator
+from .providers import PSFProvider, resolve_field
 from .adapters.naomi import attach_rana

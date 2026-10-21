@@ -1,7 +1,9 @@
 """Composable RANA configuration for physically sampled full-field PSF banks."""
 from dataclasses import dataclass, field, asdict
+from collections.abc import Mapping
 from .physics import VectorialOptics, StratifiedMedium, Acquisition, PulseSpectrum, EmissionResponse
 from .depth import DepthPSFBank
+from .providers import FieldSource
 
 
 @dataclass(frozen=True)
@@ -67,12 +69,13 @@ class RanaConfig:
 class RanaAddon:
     """field=None preserves all native per-position PSFs automatically.
 
-    field may also be a FullFieldPSF, DepthPSFBank or RanaConfig: this explicitly
-    supplies the focal optical model while preserving the acquisition stages.
+    field may also be a FullFieldPSF, DepthPSFBank or any PSFProvider (including
+    RanaConfig), with a per-channel mapping for multiple beams. This supplies
+    the focal optical model while preserving the acquisition stages.
     Custom kernels are in the scan pipeline's response units; native tissue
     masks are separate source weights. No implicit gain or exposure fitting.
     """
-    field: object = None
+    field: FieldSource | Mapping[str, FieldSource] | None = None
     voxel_size_um: tuple | None = None
     origin_um: tuple = (0., 0.)
     z_origin_um: float = 0.
