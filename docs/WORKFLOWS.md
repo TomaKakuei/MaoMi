@@ -78,6 +78,13 @@ the required/available shapes. Select suitable `optical_overrides` at import;
 missing anatomy is not fabricated. CLI JSON accepts `"optical_overrides"`.
 A mean-PSF-only file cannot supply missing local shapes for RANA.
 
+The compact example explicitly sets `acquisition.tail_policy="nonnegative"`.
+This projects negative tail-kernel resampling ringing onto nonnegative intensity
+while preserving integrated gain, so sparse source tissue has valid photon
+rates. The raw optical archive is unchanged. `"native"` retains raw MATLAB
+resampling; it is standard mode's default. RANA defaults to `"nonnegative"`.
+Both modes accept either policy through the same acquisition configuration.
+
 ## Prepare optics once
 
 ```python

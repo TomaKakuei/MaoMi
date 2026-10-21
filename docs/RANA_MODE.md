@@ -54,7 +54,7 @@ Automatic attachment replaces the shared focal **shape** with complete local
 shapes. Native kernels are scaled to the mean-PSF energy because the existing
 source mask already carries local excitation gain. This avoids counting that
 gain twice. Collection masks and both tail descriptors are retained.
-When tail resampling contains negative intensity ringing, RANA projects it to
+By default, when tail resampling contains negative intensity ringing, RANA projects it to
 nonnegative intensity while preserving integrated gain. The original
 descriptors and default scanner remain unchanged; background is still included.
 

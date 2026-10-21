@@ -209,6 +209,32 @@ class AcquisitionAddon(unittest.TestCase):
                              rng=np.random.default_rng(35))
         self.assertTrue(np.isfinite(result['noisy']).all())
 
+    def test_explicit_tail_policy_is_shared_and_preserves_native_descriptors(self):
+        from copy import deepcopy
+        from maomi.rana import RanaOperator
+        optics, neurons, activity, motion = fixture()
+        raw = np.array([[1., -.05], [.3, .1]], np.float32)
+        for key in ('psfT', 'psfB'):
+            optics[key]['convmask'] = raw.copy()
+        physical = deepcopy(optics)
+        for key in ('psfT', 'psfB'):
+            physical[key]['convmask'] = RanaOperator.physical_tail(raw)
+        for enabled in (False, True):
+            original = addon(optics) if enabled else optics
+            expected = addon(physical) if enabled else physical
+            settings = dict(scan_buff=2, sfrac=2, nuc_label=1, tail_policy='nonnegative')
+            actual = scan_volume(neurons, original, activity, settings, motion=motion,
+                                 rng=np.random.default_rng(35))
+            reference = scan_volume(neurons, expected, activity, dict(settings, tail_policy='native'),
+                                    motion=motion, rng=np.random.default_rng(35))
+            # A supplied descriptor is cast to float32 before normalization;
+            # on-the-fly projection retains its float64 gain accumulator.
+            np.testing.assert_allclose(actual['clean'], reference['clean'], rtol=1e-6, atol=1e-6)
+            self.assertTrue(np.isfinite(actual['noisy']).all())
+            np.testing.assert_array_equal(optics['psfT']['convmask'], raw)
+            with self.assertRaisesRegex(ValueError, 'tail_policy'):
+                scan_volume(neurons, original, activity, dict(settings, tail_policy='typo'), motion=motion)
+
     @unittest.skipUnless(torch.cuda.is_available(), 'Requires CUDA')
     def test_cuda_local_operator_matches_cpu(self):
         optics, *_ = fixture()

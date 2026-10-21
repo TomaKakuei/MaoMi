@@ -7,6 +7,9 @@
   module imports are shims. Numerical implementations are preserved.
 - The old static selector is replaced by an explicitly named global RBF
   reference API. See [migration](CLI.md#migration-from-older-snapshots).
+- The compact recipe explicitly selects a shared nonnegative tail policy to
+  remove native resampling ringing before photon sampling. Raw optical
+  descriptors and the standard default remain MATLAB-compatible.
 - Existing 0.8.0.dev0 movie archives retain their resume version contract.
 
 # MaoMi 0.8.0.dev0 - source-to-movie workflows

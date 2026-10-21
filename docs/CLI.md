@@ -56,6 +56,13 @@ own geometry, with `optical_overrides` applied during MAT import.
 CLI values override corresponding config values. Paths inside JSON are relative
 to that JSON file; CLI paths are relative to the working directory.
 
+The compact example explicitly sets `acquisition.tail_policy="nonnegative"`.
+This projects negative tail-kernel resampling ringing onto nonnegative intensity
+while preserving integrated gain, so sparse source tissue has valid photon
+rates. The raw optical archive is unchanged. `"native"` retains raw MATLAB
+resampling; it is standard mode's default. RANA defaults to `"nonnegative"`.
+Both modes accept either policy through the same acquisition configuration.
+
 ## RANA optical providers
 
 ```sh

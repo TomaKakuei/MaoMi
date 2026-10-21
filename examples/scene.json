@@ -15,5 +15,6 @@
     "seed": 19
   },
   "activity": {"frames": 8, "fps": 30, "rate_hz": 1},
-  "acquisition": {"scan_buff": 2, "scan_avg": 1, "sfrac": 1, "motion": false}
+  "acquisition": {"scan_buff": 2, "scan_avg": 1, "sfrac": 1, "motion": false,
+                  "tail_policy": "nonnegative"}
 }

@@ -1,6 +1,7 @@
 """Common CLI contracts, real acquisition and RANA package independence."""
 import contextlib
 import io
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -24,6 +25,22 @@ def invoke(args):
 
 
 class CommonCLI(unittest.TestCase):
+    @unittest.skipUnless(importlib.util.find_spec("numba"), "Requires tissue extra")
+    def test_documented_tissue_recipe_in_both_modes(self):
+        config = Path(__file__).resolve().parents[1]/"examples/scene.json"
+        with tempfile.TemporaryDirectory() as folder:
+            for rana in (False, True):
+                output = Path(folder)/str(rana)
+                args = ["run", "--config", config, "--output", output, "--max-frames", "3"]
+                if rana:
+                    args.append("--rana")
+                invoke(args)
+                self.assertTrue(invoke(["resume", output])["complete"])
+                data = MovieDataset(output, verify=True)
+                self.assertEqual(data.frames, 8)
+                for i in range(data.frames):
+                    self.assertTrue(np.isfinite(data[i]["noisy"]).all())
+
     def test_help_and_entrypoints_share_one_parser(self):
         from maomi.__main__ import main as module_main
         from maomi.workflow_cli import main as compatibility_main

@@ -592,18 +592,24 @@ def iter_scan_volume(
         / (250 * 250)
     )
     freq = psf_fft(shape, psf, int(p["scan_avg"])) if rana is None else None
+    tail_policy = p.get("tail_policy", "nonnegative" if rana is not None else "native")
+    if tail_policy not in ("native", "nonnegative"):
+        raise ValueError("tail_policy must be native or nonnegative")
+    if tail_policy == "nonnegative":
+        from .rana.operator import RanaOperator
+        project_tail = RanaOperator.physical_tail
     tails = []
     for name in ["psfT", "psfB"]:
         spec = optics.get(name)
         if spec is None:
             continue
         kernel = np.asarray(spec["convmask"], np.float32)
-        if rana is not None:
-            kernel = rana.physical_tail(kernel)
+        if tail_policy == "nonnegative":
+            kernel = project_tail(kernel)
         kernel = kernel / kernel.sum()
         tm = np.asarray(spec["mask"], np.float32)
-        if rana is not None:
-            tm = rana.physical_tail(tm)
+        if tail_policy == "nonnegative":
+            tm = project_tail(tm)
         tm = tm / tm.mean()
         tails.append(
             {
