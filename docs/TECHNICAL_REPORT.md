@@ -18,7 +18,7 @@ Same 512 x 512 x 60 tissue, scattering input, pupil and 4225 sites. Full-volume 
 
 ## 2. Extensibility
 
-RANA (Ray Aware Nonuniform Acquisition) is an optional optical add-on. Native local PSFs and custom physics providers feed the same anatomy, activity, movie, noise and export workflow. Default MaoMi remains MATLAB-compatible.
+RANA (Ray Aware Nonuniform Acquisition) is an optional optical add-on. Native local PSFs and custom physics providers feed the same anatomy, activity, movie, noise and export workflow. Default MaoMi remains MATLAB-compatible. One CLI serves both: run, render, resume and inspect; --rana is the only switch.
 
 **RANA: theoretically higher accuracy through four implemented extensions: refractive-index/depth aberration, high-NA vectorial optics, finite-voxel/scan integration and coherent pulse/spectral response.**
 
@@ -40,7 +40,7 @@ Julia: [pinned snapshot, 17 May 2026](https://github.com/JuliaNeuroscience/NAOMi
 | Cells and paired data | Tissue presets, resumable movies, activity, cell labels and latent GT. |
 
 
-RANA standalone static control (256 x 256 x 16): 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.
+Global cubic RBF reference control (256 x 256 x 16): 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.
 
 Original data: [NAOMi on OSF](https://osf.io/863j9/).
 
@@ -49,6 +49,6 @@ See [RANA add-on](RANA_MODE.md), [physics and units](RANA_PHYSICS.md),
 
 ## 4. What's next
 
-Extend editable 3-D cells and dynamics, calibrate optical/tissue parameters against real data, and generate paired ground truth for denoising and reconstruction. Add optical providers and acquisition models through the same Python interfaces.
+Extend editable 3-D cells and dynamics, calibrate optical/tissue parameters against real data, and generate paired ground truth for denoising and reconstruction. RANA is the main development core, with a separate native adapter. The goal is to replace the remaining NAOMi-derived components and release RANA as an independent successor, preserving one user workflow.
 
 Built on [NAOMi, Song et al. (2021)](https://doi.org/10.1016/j.jneumeth.2021.109173).

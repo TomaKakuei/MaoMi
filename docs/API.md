@@ -2,13 +2,15 @@
 
 ## Complete scene workflow
 
-`Scene`, `load_naomi_mat`, `RunConfig` and `run_scene` connect imported or
+`Scene`, `load_naomi_mat`, `RunConfig`, `run_scene` and `render_scene` connect imported or
 generated source tissue to standard/RANA acquisition on CPU/CUDA.
 `prepare_optics` and `render_static` separate propagation from rendering;
 `save_scene` / `load_scene` and `save_optics` / `load_optics` provide portable
 HDF5 archives. `MovieDataset` reads resumable clean/noisy frame pairs lazily.
 `tissue_parameters` and `generate_scene` provide complete editable morphology
-presets. See [examples and data contracts](WORKFLOWS.md).
+presets. `RunConfig(rana=True)` selects RANA for either task; `RanaAddon`
+supplies a custom provider. CLI users use the same [commands](CLI.md).
+See [data contracts](WORKFLOWS.md) and [architecture](ARCHITECTURE.md).
 
 `maomi.integrations.volume.PSFVolume` and `volume_psf_field` adapt XYZ intensity,
 complex vector fields or effective excitation from wave programs.
@@ -74,11 +76,11 @@ use `zstack(..., rana=optics["rana"], mask=..., collection_mask=...)`.
 `run_fixed` adds an attachment/render time under `timing_seconds["rana"]`;
 `total_seconds` includes it.
 
-The standalone `simulate(..., mode="rana")` custom-field renderer remains
-available, including its original global cubic RBF interpolation and timing
-fields. Native acquisition uses compact positive cubic weights. See the
-[RANA integration guide](RANA_MODE.md) for conventions and runnable movies.
-Use `status_window=False` or `MAOMI_STATUS_WINDOW=0` for unattended execution.
+The common workflow uses `maomi.rana.RanaOperator` with compact positive
+cubic weights. `maomi.rana.reference.render_reference` exposes the historical
+global cubic RBF operator by name. Older `simulate(mode="rana")` calls are
+deprecated compatibility calls to that reference. New acquisitions use the
+scene workflow. `MAOMI_STATUS_WINDOW=0` disables the desktop indicator.
 
 `maomi.FullFieldPSF` carries non-normalized effective XY or XYZ kernels on a
 complete XY field. `maomi.CubicFullFieldRenderer(field, shape,
@@ -153,10 +155,12 @@ tissue, scanning and analysis modules remain available.
 
 ## RANA physics and depth banks
 
-`simulate(volume, mode="rana", config=RanaConfig(...), z_origin_um=...,
-device="cpu"|"cuda", status_window=True)` builds and renders a complete PSF bank.
-Alternatively pass `psf_field=FullFieldPSF|DepthPSFBank` with explicit
-`voxel_size_um`. `config` and `psf_field` are mutually exclusive.
+`RanaConfig(...).build_field()` constructs a complete depth bank.
+`RanaConfig.from_dict(specification)` accepts physics in JSON form;
+see [the executable config](../examples/rana_physics.json).
+Pass `RanaAddon(field=config)` or `RanaAddon(field=bank)` to `run_scene` or
+`render_scene`. `maomi.rana.RanaOperator(bank).static(volume)` uses the core
+directly, independently of the host pipeline.
 
 - `VectorialOptics`: complex vector field, polarization, Fresnel interfaces,
   custom pupil amplitude/OPD and radial/azimuth quadrature.
@@ -169,6 +173,6 @@ Alternatively pass `psf_field=FullFieldPSF|DepthPSFBank` with explicit
 - `DepthPSFBank.save/load`: portable complete-field NPZ with model provenance.
 - `DepthFullFieldRenderer`: cubic XY, positive linear depth, CPU/CUDA operators.
 
-Returned timing fields separate `status_start`, `optics`, `preparation` and
+The global RBF reference renderer's timing fields separate `status_start`, `optics`, `preparation` and
 `render`; `simulation_seconds` includes the last three, excluding the indicator.
 See [runnable add-on guide](RANA_MODE.md) and [equations/units](RANA_PHYSICS.md).

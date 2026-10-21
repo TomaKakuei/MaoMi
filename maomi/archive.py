@@ -157,7 +157,7 @@ def _read_tree(group):
 
 def save_optics(optics,path):
     """Persist reusable propagation and local PSF fields, without device caches."""
-    from .rana_depth import DepthPSFBank
+    from .rana.depth import DepthPSFBank
     def pack(value):
         out = {k:v for k,v in value.items() if k not in ("rana","channels")}
         if "channels" in value:
@@ -181,9 +181,9 @@ def save_optics(optics,path):
 
 
 def load_optics(path,*,device="cpu"):
-    from .rana_addon import RanaOperator
-    from .enhanced import FullFieldPSF
-    from .rana_depth import DepthPSFBank
+    from .rana import RanaOperator
+    from .rana.fields import FullFieldPSF
+    from .rana.depth import DepthPSFBank
     with _h5().File(path,"r") as f:
         out = _read_tree(f)
     if out.pop("_schema") != "maomi.optics.v1":

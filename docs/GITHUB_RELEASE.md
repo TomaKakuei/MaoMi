@@ -1,7 +1,9 @@
 # Public snapshot
 
 MaoMi 0.8.0.dev0 connects source anatomy to standard/RANA acquisition through
-one CPU/CUDA workflow. Author: Yueze Wang.
+one CPU/CUDA workflow. Only `--rana` enables the add-on. RANA has a separate
+development core and native adapter; see [architecture](ARCHITECTURE.md) and
+[commands](CLI.md). Author: Yueze Wang.
 
 ```sh
 python -m pip install ".[mat,tissue,examples]"

@@ -35,7 +35,7 @@ def prepare_optics(config, *, device="auto", rana=False, vessels=None, raw_field
     """Compute optics once; no fluorescence volume or static image is needed."""
     from .fixed import run_fixed, fixed_locations
     from .optics import prepare_fields, pupil, propagate, collection_mask
-    from .rana_addon import attach_rana
+    from .rana import attach_rana
     device = select_device(device)
     if device.startswith("cuda"):
         return run_fixed(config,None,device=device,rana=rana,render_image=False,vessels=vessels,
@@ -94,6 +94,60 @@ class RunConfig:
             raise ValueError("seed must be a nonnegative integer")
 
 
+def _scene_optics(scene, settings, optics, rana, device, optical_options):
+    """One preparation/attachment policy for static images and movies."""
+    from .rana.adapters.naomi import attach_rana
+    selection = settings.rana if rana is None else rana
+    if optics is not None:
+        return attach_rana(optics, selection, config=scene.config, device=device)
+    needed = scene.metadata.get("required_optical_overrides", [])
+    if "input_pupil" in needed and "input_pupil" not in optical_options:
+        raise ValueError("Imported non-Gaussian optics require an explicit input_pupil; original parameters are in scene.metadata")
+    if "custom_phase or input_pupil" in needed and not ({"custom_phase", "input_pupil"} & optical_options.keys()):
+        raise ValueError("Imported spatial Zernike callbacks require an explicit custom_phase or input_pupil")
+    return prepare_optics(scene.config, device=device, rana=selection, vessels=scene.vessels,
+        count_per_axis=settings.count_per_axis, batch_size=settings.batch_size,
+        scatter=settings.scatter, tails=settings.tails, **optical_options)
+
+
+def render_scene(scene, *, settings=None, optics=None, rana=None, output=None, **optical_options):
+    """Render a noiseless XYZ stack using the same scene/optics policy as run_scene.
+
+    An output directory contains image.npz, scene.h5, optics.h5 and render.json.
+    Static rendering uses baseline density; activity and detector noise belong
+    to run_scene. No activity traces are required here.
+    """
+    from .archive import save_scene, save_optics, jsonable
+    from . import __version__
+    if not isinstance(scene, Scene):
+        raise TypeError("Supply a Scene")
+    scene.validate()
+    settings = settings or RunConfig()
+    device = select_device(settings.device)
+    path = Path(output) if output is not None else None
+    if path is not None and path.exists():
+        raise FileExistsError("Choose a new output folder")
+    started = time.perf_counter()
+    optics = _scene_optics(scene, settings, optics, rana, device, optical_options)
+    prepared = time.perf_counter()
+    volume = np.asarray(scene.neurons["neur_vol"])
+    image = render_static(volume, optics, device=device)
+    finished = time.perf_counter()
+    metadata = dict(schema="maomi.render.v1", maomi_version=__version__,
+        settings=asdict(settings), selected_device=device, config=asdict(scene.config),
+        optical_settings=optics.get("settings", {}), shape=list(image.shape), axes="XYZ",
+        scope="Noiseless focal static Z-stack from baseline density",
+        timing_seconds=dict(optics=prepared-started, render=finished-prepared),
+        total_seconds=finished-started)
+    if path is not None:
+        path.mkdir(parents=True)
+        save_scene(scene, path/"scene.h5")
+        save_optics(optics, path/"optics.h5")
+        np.savez_compressed(path/"image.npz", image=image, volume=volume)
+        (path/"render.json").write_text(json.dumps(jsonable(metadata), indent=2, allow_nan=False), encoding="utf8")
+    return dict(image=image, optics=optics, metadata=metadata)
+
+
 def run_scene(scene=None, *, settings=None, optics=None, rana=None, motion=None,
               output=None, resume=False, max_frames=None, **optical_options):
     """Run or resume a full acquisition. Resume uses archived inputs exactly.
@@ -131,12 +185,6 @@ def run_scene(scene=None, *, settings=None, optics=None, rana=None, motion=None,
         scene.validate()
         if scene.activity is None:
             raise ValueError("No activity supplied; import traces or call scene.generate_activity(...) explicitly")
-        needed = scene.metadata.get("required_optical_overrides",[])
-        if optics is None and needed:
-            if "input_pupil" in needed and "input_pupil" not in optical_options:
-                raise ValueError("Imported non-Gaussian optics require an explicit input_pupil; original parameters are in scene.metadata")
-            if "custom_phase or input_pupil" in needed and not ({"custom_phase","input_pupil"} & optical_options.keys()):
-                raise ValueError("Imported spatial Zernike callbacks require an explicit custom_phase or input_pupil")
         settings = settings or RunConfig()
         device = select_device(settings.device)
         if settings.chunk_frames < 1:
@@ -144,15 +192,7 @@ def run_scene(scene=None, *, settings=None, optics=None, rana=None, motion=None,
         if path is not None:
             if path.exists():
                 raise FileExistsError("Choose a new output folder or resume the existing run")
-            path.mkdir(parents=True)
-        if optics is None:
-            optics = prepare_optics(scene.config,device=device,
-                rana=settings.rana if rana is None else rana,vessels=scene.vessels,
-                count_per_axis=settings.count_per_axis,batch_size=settings.batch_size,
-                scatter=settings.scatter,tails=settings.tails,**optical_options)
-        elif rana is not None or settings.rana:
-            from .rana_addon import attach_rana
-            optics = attach_rana(optics,settings.rana if rana is None else rana,config=scene.config,device=device)
+        optics = _scene_optics(scene, settings, optics, rana, device, optical_options)
         p = dict(scan_buff=10,scan_avg=2,sfrac=2,motion=True,zoffset=0)
         p.update(scene.scan)
         channels = list(optics["channels"].values()) if "channels" in optics else [optics]
@@ -165,6 +205,7 @@ def run_scene(scene=None, *, settings=None, optics=None, rana=None, motion=None,
                 rng=np.random.default_rng(settings.seed))
         start = 0
         if path is not None:
+            path.mkdir(parents=True)
             save_scene(scene,path/"scene.h5")
             save_optics(optics,path/"optics.h5")
             from . import __version__

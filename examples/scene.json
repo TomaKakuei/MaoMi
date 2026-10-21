@@ -9,7 +9,7 @@
   },
   "run": {
     "device": "cpu",
-    "rana": true,
+    "rana": false,
     "count_per_axis": 3,
     "chunk_frames": 4,
     "seed": 19

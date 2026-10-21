@@ -453,6 +453,6 @@ def run_optics(
         "low_order_subtraction": False,
     }
     if rana is not False and rana is not None:
-        from .rana_addon import attach_rana
+        from .rana import attach_rana
         out = attach_rana(out,rana,config=config,device=device)
     return out

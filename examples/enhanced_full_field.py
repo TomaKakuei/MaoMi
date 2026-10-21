@@ -1,4 +1,4 @@
-"""MaoMi RANA Mode: complete local excitation PSFs -> clean/noisy image pair.
+"""Global cubic RBF reference: local excitation PSFs -> clean/noisy image pair.
 
 The built-in 3x3 field is an illustrative effective two-photon response. --field and --density accept your own 2-D or 3-D data.
 """
@@ -8,7 +8,8 @@ from pathlib import Path
 import sys
 import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from maomi import FullFieldPSF, simulate
+from maomi.rana import FullFieldPSF
+from maomi.rana.reference import render_reference
 from maomi.rana_demo import rana_demo as demo
 
 
@@ -27,7 +28,7 @@ def main():
         parser.error("Choose a new output folder")
     density, field = ((np.load(args.density, allow_pickle=False), FullFieldPSF.load(args.field))
                       if args.field else demo())
-    result = simulate(density, mode="rana", psf_field=field,
+    result = render_reference(density, psf_field=field,
                       voxel_size_um=field.voxel_size_um, origin_um=args.origin_um,
                       device=args.device, status_window=not args.no_status_window)
     signal = result["image"]

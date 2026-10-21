@@ -24,8 +24,6 @@ examples = ["matplotlib>=3.8"]
 
 [project.scripts]
 maomi = "maomi.__main__:main"
-maomi-fixed = "maomi.__main__:main"
-maomi-run = "maomi.workflow_cli:main"
 
 [tool.setuptools]
 license-files = ["LICENSE", "LICENSES/NAOMi-MIT.txt", "THIRD_PARTY_NOTICES.md"]

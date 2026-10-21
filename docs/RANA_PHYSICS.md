@@ -38,8 +38,9 @@ raster excitation chooses the scan depth. Kernels retain their gains.
 bank = config.build_field()
 bank.save("bank.npz")
 bank = DepthPSFBank.load("bank.npz")
-result = simulate(volume, mode="rana", psf_field=bank,
-                  voxel_size_um=bank.voxel_size_um, z_origin_um=50)
+from maomi.rana import RanaOperator
+image = RanaOperator(bank, z_origin_um=50, device="cpu").static(volume)
+# For movies: run_scene(..., rana=RanaAddon(field=bank, z_origin_um=50)).
 ```
 
 ## 2. High-NA vectorial wave optics

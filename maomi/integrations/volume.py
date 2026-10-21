@@ -1,7 +1,7 @@
 """Three-dimensional wave/intensity providers and effective multiphoton PSFs."""
 from dataclasses import dataclass, field
 import numpy as np
-from ..enhanced import FullFieldPSF
+from ..rana.fields import FullFieldPSF
 
 
 @dataclass(frozen=True)

@@ -1,29 +1,37 @@
-"""MaoMi: Modular anatomy and optics for Microscopy, building on NAOMi."""
+"""MaoMi: Modular anatomy and optics for Microscopy, building on NAOMi.
 
-from .scanning import zstack
-from .optics import OpticalConfig
+Public imports are lazy so the RANA core can be used without loading the
+NAOMi-derived tissue, propagation or acquisition implementations.
+"""
+from importlib import import_module
 
 __version__ = "0.8.0.dev0"
 __author__ = "Yueze Wang"
 
+_EXPORTS = {
+    "zstack": "scanning", "OpticalConfig": "optics", "run_fixed": "fixed",
+    "make_pupil": "pupils", "make_vtwins_pupils": "pupils", "simulate": "runtime",
+    "FullFieldPSF": "rana", "CubicFullFieldRenderer": "rana",
+    "RanaConfig": "rana", "RanaAddon": "rana", "RanaOperator": "rana",
+    "DepthPSFBank": "rana", "DepthFullFieldRenderer": "rana",
+    "VectorialOptics": "rana", "StratifiedMedium": "rana", "Acquisition": "rana",
+    "PulseSpectrum": "rana", "EmissionResponse": "rana", "attach_rana": "rana",
+    "Scene": "scene", "load_naomi_mat": "mat_io", "inspect_naomi_mat": "mat_io",
+    "RunConfig": "workflow", "prepare_optics": "workflow", "render_static": "workflow",
+    "render_scene": "workflow", "run_scene": "workflow", "save_scene": "archive",
+    "load_scene": "archive", "save_optics": "archive", "load_optics": "archive",
+    "MovieDataset": "dataset", "tissue_parameters": "tissue_config", "generate_scene": "tissue_config",
+}
+__all__ = list(_EXPORTS)
 
-def run_fixed(*args, **kwargs):
-    """Lazy entry point; CPU reference imports do not require CuPy."""
-    from .fixed import run_fixed as implementation
 
-    return implementation(*args, **kwargs)
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module("." + _EXPORTS[name], __name__), name)
+    globals()[name] = value
+    return value
 
 
-from .pupils import make_pupil, make_vtwins_pupils
-from .enhanced import FullFieldPSF, CubicFullFieldRenderer
-from .runtime import simulate
-from .rana import RanaConfig
-from .rana_depth import DepthPSFBank, DepthFullFieldRenderer
-from .rana_optics import VectorialOptics, StratifiedMedium, Acquisition, PulseSpectrum, EmissionResponse
-from .rana_addon import RanaAddon, attach_rana
-from .scene import Scene
-from .mat_io import load_naomi_mat, inspect_naomi_mat
-from .workflow import RunConfig, prepare_optics, render_static, run_scene
-from .archive import save_scene, load_scene, save_optics, load_optics
-from .dataset import MovieDataset
-from .tissue_config import tissue_parameters, generate_scene
+def __dir__():
+    return sorted(set(globals()) | set(__all__))

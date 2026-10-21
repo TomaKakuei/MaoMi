@@ -111,8 +111,9 @@ times padded image size; choose the field grid for the optical problem.
 The external renderer handles spatially varying 2-D intensity PSFs. Run the
 self-contained example and checker above to verify your generated output.
 Choose and validate the PSF field grid for your optical problem. The native
-3-D NAOMi-derived propagation/movie route remains separate; automatic coupling,
-depth/spectral kernels and coherent fields are future extensions.
+3-D acquisition uses the XYZ field and pupil interfaces described below.
+Depth/spectral models and coherent pupil coupling are available through RANA
+and the native adapters; they are outside this basic 2-D renderer contract.
 
 ## XYZ providers and native pupil coupling
 

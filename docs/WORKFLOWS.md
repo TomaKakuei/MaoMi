@@ -4,12 +4,15 @@ Author: Yueze Wang
 
 `Scene` holds anatomy, activity, optics and acquisition inputs. `RunConfig`
 selects CPU/CUDA, optional RANA, noise, sampling and output chunks.
+`run_scene` generates movies; `render_scene` uses the same configuration for
+static volumes. See [commands](CLI.md); RANA uses only `--rana`.
 
 ## Run a complete example
 
 ```sh
 python -m pip install ".[mat,tissue,examples]"
 python -m maomi run --config examples/scene.json --output artifacts/scene
+python -m maomi run --config examples/scene.json --rana --output artifacts/scene_rana
 # Optional CUDA:
 python -m pip install ".[cuda]"
 python -m maomi run --config examples/scene.json --device cuda --output artifacts/scene_cuda
@@ -21,8 +24,8 @@ standard acquisition. RANA is **Ray Aware Nonuniform Acquisition**: theoreticall
 higher accuracy through complete local PSFs and optional physical extensions.
 
 `device="auto"` selects CUDA when CUDA-enabled PyTorch and CuPy are available,
-otherwise CPU. Explicit device requests are honored. The existing
-`simulate(..., device="cpu")` also supports static native imaging.
+otherwise CPU. Explicit device requests are honored. `render_scene` and
+`maomi render` support static native and RANA imaging with the same options.
 CUDA accelerates native optical propagation and RANA local-PSF convolution.
 Standard movie convolution, motion, detector noise and file output currently
 run on the CPU.

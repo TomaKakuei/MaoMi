@@ -1,0 +1,20 @@
+{
+  "optical": {"volume_um": [16, 16, 10], "depth_um": 10, "vres": 1,
+              "psf_um": [4, 4, 4], "tail_um": 5},
+  "run": {"device": "cpu", "count_per_axis": 3, "chunk_frames": 4, "seed": 19},
+  "activity": {"frames": 8, "fps": 30, "rate_hz": 1},
+  "acquisition": {"scan_buff": 1, "scan_avg": 1, "sfrac": 1, "motion": false},
+  "rana": {
+    "physics": {
+      "x_um": [0, 8, 16], "y_um": [0, 8, 16], "depths_um": [10, 15, 20],
+      "voxel_size_um": [1, 1, 1], "kernel_shape": [5, 5, 5],
+      "optics": {"na": 0.9, "radial_samples": 8, "azimuth_samples": 16,
+                 "medium": {"specimen_index": 1.38}},
+      "acquisition": {"voxel_order": 2, "scan_offsets_um": [[-0.1, 0, 0], [0.1, 0, 0]],
+                      "dwell_weights": [0.5, 0.5], "dwell_seconds": 1},
+      "pulse": {"fwhm_fs": 100, "gdd_fs2": 1800, "samples": 33},
+      "emission": {"wavelength_nm": [500, 525, 550, 575],
+                   "photon_density": [0, 1, 0.7, 0], "efficiency": [0.55, 0.8, 0.7, 0.3]}
+    }
+  }
+}

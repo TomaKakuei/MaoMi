@@ -1,38 +1,35 @@
-# RANA — Ray Aware Nonuniform Acquisition
+# RANA: Ray Aware Nonuniform Acquisition
 
-RANA is an **optional optical add-on to MaoMi**: theoretically higher accuracy
-through complete local PSFs and explicit image-formation physics. It attaches
-to the existing acquisition pipeline; anatomy, activity, scanning, noise and
-export retain their existing interfaces.
+RANA is an optional add-on within MaoMi's common workflow and the project's
+primary area for future simulator development. It provides **theoretically
+higher accuracy** through complete local PSFs and composable physical models.
 
-## Enable it on your existing pipeline
+## One switch, the same workflow
 
-```python
-from maomi import run_fixed
-from maomi.movie import scan_volume
-
-# The only added argument is rana=True.
-optics = run_fixed(cfg, volume, vessels=vessels, rana=True)
-movie = scan_volume(neurons, optics, activity, scan, add_noise=True)
+```sh
+python -m pip install ".[mat,tissue]"
+maomi run --config examples/scene.json --output artifacts/standard
+maomi run --config examples/scene.json --rana --output artifacts/rana
+maomi render --config examples/scene.json --rana --output artifacts/static
+maomi resume artifacts/rana
 ```
 
-`rana=False` is the default. With it off, native propagation, MATLAB v4 masks
-and mean-PSF scanning remain unchanged. Automatic RANA reuses every computed
-local PSF without rerunning propagation or reducing the point count.
-For CPU propagation use `run_optics(cfg, points, rana=True, ...)`.
-
-Attach to previously computed optics:
+`--rana` enables local-field acquisition. Input, activity, device, sampling,
+output and checkpoint options are shared with standard MaoMi. Resume restores
+the saved configuration. See [all commands](CLI.md).
 
 ```python
-from maomi import attach_rana, RanaAddon
+from maomi import RunConfig, run_scene, render_scene
+from maomi.rana import RanaAddon, DepthPSFBank
 
-local_optics = attach_rana(optics, RanaAddon(device="cpu"), config=cfg)
-movie = scan_volume(neurons, local_optics, activity, scan, add_noise=True)
+settings = RunConfig(device="auto", rana=True)
+data = run_scene(scene, settings=settings, output="artifacts/movie")
+image = render_scene(scene, settings=settings)["image"]
+
+bank = DepthPSFBank.load("bank.npz")
+provider = RanaAddon(field=bank, z_origin_um=scene.config.depth_um)
+data = run_scene(scene, settings=settings, rana=provider, output="artifacts/custom")
 ```
-
-Without `config`, supply `RanaAddon(voxel_size_um=(dx,dy,dz))`.
-Use `volume=volume` in `attach_rana` to also render a static image.
-Arrays are XYZ; distances are micrometres.
 
 ## Shared capabilities
 
@@ -96,38 +93,28 @@ the lower volume edge in the bank's coordinates, covering the motion range.
 Custom kernels retain their gain; no exposure fitting is hidden.
 See [physics and units](RANA_PHYSICS.md).
 
-## Run a complete movie example
+## Providers and development
 
 ```sh
-python -m pip install ".[examples]"
-python examples/rana_movie.py --output artifacts/default_movie
-python examples/rana_movie.py --rana --output artifacts/local_movie
-python examples/rana_movie.py --rana --physics --nuclear --output artifacts/physics_movie
+maomi run --config examples/scene.json --rana --psf-field bank.npz --output artifacts/custom
+maomi run --demo --config examples/rana_physics.json --rana --output artifacts/physics
 ```
 
-These runs share generated cells, AR activity, motion, tails, collection,
-binning, detector noise and export. Outputs include clean/noisy movies,
-latent density, spikes, activity and settings/timings. Clean acquisition is
-the denoising target; latent density is a separate reconstruction target.
-Streaming is checked against the collected movie. Use `--device cuda`
-with CUDA-enabled PyTorch and the `cuda` extra.
+Fields must match voxel pitch and cover the entire FOV. Depth banks also cover
+the acquisition depth range, including motion. `rana.physics` in JSON accepts
+`RanaConfig.from_dict`. See [configuration](CLI.md#rana-optical-providers).
 
-For the native CLI, add `--rana` to the existing command:
+Low-level `run_fixed(..., rana=True)` and `run_optics(..., rana=True)` remain
+supported. `attach_rana` reuses existing propagation. Without an OpticalConfig,
+declare `RanaAddon(voxel_size_um=(dx,dy,dz))`.
 
-```sh
-python -m maomi --scene scattering --rana --output artifacts/native_local
-```
+RANA's canonical implementation lives in `maomi/rana/`; native host coupling is
+in `maomi/rana/adapters/naomi.py`. The [development map](ARCHITECTURE.md) describes
+how this supports gradually replacing NAOMi-derived components and eventually
+releasing RANA as an independent successor.
 
-The earlier `--mode rana` / `simulate(..., mode="rana")` static entry remains
-available for existing scripts and optical experiments. It uses the global
-cubic `r³` RBF renderer in the [full-field contract](ENHANCED_PSF.md).
-That renderer and the compact positive acquisition interpolator are distinct;
-the [published static comparison](RANA_COMPARISON.md) measures the former.
-
-See [API](API.md) and [OSF datasets](DATASETS.md).
-
-## Unified source workflow
-
-Use [Scene/RunConfig](WORKFLOWS.md) to import original MAT files, prepare optics
-once and run/resume the same standard or RANA acquisition on CPU/CUDA. XYZ
-RayOptics and wave-provider examples feed this acquisition interface directly.
+`CubicFullFieldRenderer`, `DepthFullFieldRenderer` and `render_reference` expose
+the global cubic RBF reference operator used by the
+[historical static comparison](RANA_COMPARISON.md). They are named numerical
+components, not another RANA CLI mode. See the [field contract](ENHANCED_PSF.md)
+and [migration guide](CLI.md#migration-from-older-snapshots).

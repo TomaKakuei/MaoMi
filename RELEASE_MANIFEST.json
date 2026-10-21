@@ -2,7 +2,7 @@
   "schema": "maomi.public_snapshot.v1",
   "project": "MaoMi",
   "version": "0.8.0.dev0",
-  "snapshot": "source-workflow-20261020",
+  "snapshot": "unified-cli-rana-core-20261020",
   "report": "docs/TECHNICAL_REPORT.pdf",
   "report_pages": 1,
   "report_sections": [
@@ -15,12 +15,14 @@
   "local_experimental_records_included": false,
   "repository": "https://github.com/TomaKakuei/MaoMi",
   "routes": [
-    "Native MaoMi with optional RANA acquisition add-on",
-    "Standalone custom-field renderer (compatible API)"
+    "One scene workflow, optional RANA acquisition",
+    "Explicit global RBF reference operator"
   ],
   "mode_expansion": "RANA - Ray Aware Nonuniform Acquisition",
   "public_comparison": "docs/RANA_COMPARISON.md",
   "datasets": "docs/DATASETS.md",
   "author": "Yueze Wang",
-  "workflow": "docs/WORKFLOWS.md"
+  "workflow": "docs/WORKFLOWS.md",
+  "cli": "docs/CLI.md",
+  "architecture": "docs/ARCHITECTURE.md"
 }

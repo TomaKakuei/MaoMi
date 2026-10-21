@@ -220,7 +220,7 @@ def run_fixed(
         options = locals().copy()
         options['rana'] = False
         options['render_image'] = False
-        from .rana_addon import attach_rana, RanaAddon
+        from .rana import attach_rana, RanaAddon
         from .rana_ui import RanaStatus
         overall = time.perf_counter()
         with RanaStatus(rana.status_window if isinstance(rana,RanaAddon) else True):

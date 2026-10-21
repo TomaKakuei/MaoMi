@@ -81,28 +81,6 @@ class RanaModeTests(unittest.TestCase):
         self.assertFalse(np.array_equal(np.asarray(frames[0]), np.asarray(frames[8])))
         self.assertEqual(MESSAGE, "MaoMi-RANA is working in background")
 
-    def test_cli_custom_input_output_and_mode_record(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)
-            self.field.save(path/"field.npz")
-            np.save(path/"density.npy", self.a)
-            args = ["--mode", "rana", "--psf-field", str(path/"field.npz"),
-                    "--volume", str(path/"density.npy"), "--no-status-window",
-                    "--output", str(path/"out")]
-            with contextlib.redirect_stdout(io.StringIO()):
-                main(args)
-            meta = json.loads((path/"out.json").read_text())
-            self.assertEqual(meta["mode"], "rana")
-            self.assertEqual(meta["display_mode"], "RANA - Ray Aware Nonuniform Acquisition")
-            with np.load(path/"out.npz") as data:
-                self.assertEqual(data["image"].shape, self.a.shape)
-                np.testing.assert_array_equal(data["volume"], self.a)
-            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-                main(args)  # Protect the previous output.
-
-    def test_cli_rejects_native_flags_in_rana(self):
-        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
-            main(["--mode", "rana", "--demo", "--focal-only"])
 
 
 if __name__ == "__main__":

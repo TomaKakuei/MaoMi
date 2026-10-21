@@ -1,3 +1,14 @@
+# Unified commands and independent RANA core - 20 October 2026
+
+- One `maomi` CLI: `run`, `render`, `resume`, `inspect`; only `--rana` enables RANA.
+- Static and movie tasks share preparation, providers and directory conventions.
+- RANA physics accepts declarative JSON as well as Python configuration.
+- RANA lives in `maomi/rana/`; native coupling lives in its adapter. Existing
+  module imports are shims. Numerical implementations are preserved.
+- The old static selector is replaced by an explicitly named global RBF
+  reference API. See [migration](CLI.md#migration-from-older-snapshots).
+- Existing 0.8.0.dev0 movie archives retain their resume version contract.
+
 # MaoMi 0.8.0.dev0 - source-to-movie workflows
 
 - Correct automatic Y-motion bounds so boundary shifts do not introduce an
