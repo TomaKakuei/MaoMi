@@ -1,8 +1,10 @@
 {
   "schema": "maomi.public_snapshot.v1",
   "project": "MaoMi",
-  "version": "0.8.0.dev0",
-  "snapshot": "rana-provider-backend-boundaries-20261020",
+  "version": "0.8.0b1",
+  "snapshot": "open-beta-1-20261023",
+  "release_tag": "v0.8.0-beta.1",
+  "release_channel": "open-beta",
   "report": "docs/TECHNICAL_REPORT.pdf",
   "report_pages": 1,
   "report_sections": [
@@ -25,5 +27,6 @@
   "workflow": "docs/WORKFLOWS.md",
   "cli": "docs/CLI.md",
   "architecture": "docs/ARCHITECTURE.md",
-  "providers": "docs/PROVIDERS.md"
+  "providers": "docs/PROVIDERS.md",
+  "time_resolved_acquisition": "docs/TIME_RESOLVED_ACQUISITION.md"
 }

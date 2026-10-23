@@ -1,0 +1,19 @@
+{
+  "run": {"device": "cpu", "count_per_axis": 3, "tails": false, "chunk_frames": 2},
+  "activity": {"frames": 8, "fps": 30, "seed": 19},
+  "acquisition": {
+    "scan_buff": 0,
+    "scan_avg": 1,
+    "sfrac": 1,
+    "timing": {
+      "mode": "raster",
+      "exposure_s": 0.00001,
+      "pixel_period_s": 0.00001,
+      "line_period_s": 0.001,
+      "bidirectional": true,
+      "samples": 65,
+      "velocity_voxels_s": [2, 0, 0],
+      "photon_rate_scale": 100000
+    }
+  }
+}

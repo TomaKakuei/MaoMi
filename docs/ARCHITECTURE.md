@@ -39,6 +39,9 @@ maomi / python -m maomi
 | External ray/wave providers | `maomi/integrations/` |
 | Native CUDA propagation | `maomi/fixed.py`, `maomi/backends/cuda/` |
 | Current tissue and acquisition host | `maomi/tissue_pipeline.py`, `maomi/movie.py` |
+| Independent exposure clocks / streaming integration | `maomi/acquisition.py` |
+| Time-resolved sparse anatomy adapter | `maomi/_timed_movie.py` |
+| Image and ROI comparison in original units | `maomi/comparison.py` |
 
 `__main__.py` and the old `workflow_cli.py` import one parser. The former
 `enhanced.py`, `rana_depth.py`, `rana_optics.py`, `rana_addon.py` and
@@ -95,8 +98,9 @@ factory, without changing physics providers or command parsing.
 
 Archives serialize resolved fields and provenance, never provider instances,
 backend objects or FFT caches. Resume reconstructs the operator using the
-saved acquisition configuration. Existing archive schemas and the package
-version contract are unchanged. A field is built before frame iteration and
+saved acquisition configuration. Open Beta 1 accepts its own archives and
+compatible `0.8.0.dev0` archives; other versions require an explicit compatibility
+decision. A field is built before frame iteration and
 the resulting operator reuses its bounded caches across frames.
 
 ## Development direction
@@ -108,3 +112,9 @@ while users retain the same scene, command and export interfaces.
 
 Preserve upstream attribution for all retained derived code. Package boundaries
 describe dependencies; they do not change source provenance or licensing.
+
+Time-resolved acquisition is an optional shared host feature, not a second RANA
+mode. `movie.py` dispatches it explicitly when `scan['timing']` is provided.
+The exposure clock accepts an instantaneous photon-rate callback and imports
+only NumPy; its adapter owns anatomy, fixed optics, detector and archive
+conventions. See [time-resolved acquisition](TIME_RESOLVED_ACQUISITION.md).

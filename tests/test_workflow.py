@@ -160,6 +160,30 @@ class WorkflowTests(unittest.TestCase):
         scan_volume(neurons,optics,activity,dict(scan_buff=2,scan_avg=1,sfrac=1,chunk_frames=1),
                     motion=motion,add_noise=False)
 
+    def test_dev0_archive_resume_and_unknown_version_rejection(self):
+        import json
+        optics, neurons, activity, motion = fixture()
+        scene = Scene(neurons, OpticalConfig(volume_um=(12,14,9), psf_um=(3,4,3)),
+                      activity, scan=dict(scan_buff=2, scan_avg=1, sfrac=2))
+        settings = RunConfig(device="cpu", seed=42, chunk_frames=1)
+        expected = run_scene(scene, settings=settings, optics=optics, motion=motion)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp)/"movie"
+            run_scene(scene, settings=settings, optics=optics, motion=motion, output=path, max_frames=1)
+            metadata = path/"run.json"
+            record = json.loads(metadata.read_text(encoding="utf8"))
+            record["maomi_version"] = "99.0.0"
+            metadata.write_text(json.dumps(record), encoding="utf8")
+            with self.assertRaisesRegex(ValueError, "version"):
+                run_scene(output=path, resume=True)
+            record["maomi_version"] = "0.8.0.dev0"
+            metadata.write_text(json.dumps(record), encoding="utf8")
+            resumed = run_scene(output=path, resume=True)
+            self.assertTrue(resumed.complete)
+            for i in range(3):
+                for key in ("clean", "noisy"):
+                    np.testing.assert_array_equal(resumed[i][key], expected[key][...,i].T)
+
     def test_cpu_prepare_no_static_image_and_reusable_archive(self):
         cfg=OpticalConfig(volume_um=(8,8,6),depth_um=5,tail_um=2,psf_um=(4,4,4))
         out=prepare_optics(cfg,device="cpu",count_per_axis=2,rana=RanaAddon(status_window=False))

@@ -45,6 +45,8 @@ def write_chunks(stream,path,*,frames,chunk_frames=64,start=0,max_frames=None):
                   "index":np.array([b["index"] for b in batch])}
         if batch[0]["noisy"] is not None:
             arrays["noisy"] = np.stack([b["noisy"].T for b in batch])
+        if "time_s" in batch[0]:
+            arrays["time_s"] = np.array([b["time_s"] for b in batch], dtype=np.float64)
         with temp.open("wb") as f:
             np.savez(f,**arrays)
         digest = _sha256(temp)
@@ -105,7 +107,7 @@ class MovieDataset:
         c = next(c for c in self.manifest["chunks"] if c["start"] <= i < c["start"]+c["frames"])
         if self._cached is None or self._cached[0] != c["file"]:
             with np.load(self.path/c["file"],allow_pickle=False) as z:
-                self._cached = (c["file"],{k:z[k] for k in ("clean","noisy") if k in z})
+                self._cached = (c["file"],{k:z[k] for k in ("clean","noisy","time_s") if k in z})
         j = i-c["start"]
         return {**{k:v[j].copy() for k,v in self._cached[1].items()},"index":i}
 

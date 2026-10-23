@@ -4,10 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "maomi-optics-preview"
-version = "0.8.0.dev0"
+version = "0.8.0b1"
 description = "MaoMi: accelerated optical simulation with open PSF interfaces and procedural ground truth"
 readme = "README.md"
 authors = [{name = "Yueze Wang"}]
+classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3"]
 requires-python = ">=3.11"
 dependencies = ["numpy>=2", "scipy>=1.14", "torch>=2.5", "pillow>=10"]
 license = {file = "LICENSE"}

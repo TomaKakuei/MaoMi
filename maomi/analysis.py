@@ -88,6 +88,8 @@ def ideal_components(
         raise ValueError("Unknown grouping")
     config = dict(scan or {})
     config["motion"] = False
+    if config.get("timing") is not None:
+        config["timing"] = dict(config["timing"], velocity_voxels_s=[0., 0., 0.])
     baseline = scan_volume(
         neurons,
         optics,
@@ -99,9 +101,17 @@ def ideal_components(
     )["clean"][:, :, 0]
     components = np.zeros(baseline.shape + (len(labels),), np.float32)
     if active:
-        rendered = scan_volume(
-            neurons, optics, selected, config, spikes=spikes, tpm=tpm, add_noise=False
-        )["clean"]
+        if config.get("timing") is not None:
+            # Component columns are separate experiments, not a time series.
+            # A timed scan must never interpolate one cell into another.
+            rendered = np.concatenate([scan_volume(neurons, optics,
+                {k: v[:, col:col+1] for k, v in selected.items()}, config,
+                spikes=spikes, tpm=tpm, add_noise=False)["clean"]
+                for col in range(len(active))], axis=2)
+        else:
+            rendered = scan_volume(
+                neurons, optics, selected, config, spikes=spikes, tpm=tpm, add_noise=False
+            )["clean"]
         components[:, :, active] = rendered
     return dict(
         components=components,

@@ -21,7 +21,7 @@ def build_parser():
         inputs.add_argument("--demo", action="store_true", help="Small built-in XYZ phantom; 3x3 optical sites, no tissue extra needed")
         if name == "render":
             inputs.add_argument("--volume", type=Path, help="XYZ fluorescence NPY; requires optical geometry in --config")
-        source.add_argument("--config", type=Path, help="JSON scene, optical, run, acquisition and optional rana configuration")
+        source.add_argument("--config", type=Path, help="JSON scene, optics, run and acquisition (optional acquisition.timing for time-resolved movies); optional rana provider")
         source.add_argument("--roi", nargs=6, type=int, metavar=("X0", "X1", "Y0", "Y1", "Z0", "Z1"),
                             help="Zero-based, half-open voxel bounds for a MAT input")
         optical = command.add_argument_group("execution and optics")

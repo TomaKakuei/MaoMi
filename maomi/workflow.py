@@ -166,7 +166,10 @@ def run_scene(scene=None, *, settings=None, optics=None, rana=None, motion=None,
             raise ValueError("Resume with scene=None; source inputs and optics are restored from the archive")
         previous = json.loads((path/"run.json").read_text(encoding="utf8"))
         from . import __version__
-        if previous.get("schema")!="maomi.run.v1" or previous.get("maomi_version",__version__)!=__version__:
+        # The first beta preserves the dev0 archive schema and numerical path.
+        # Keep compatibility explicit; unknown/future versions are not assumed.
+        compatible_versions = {__version__, "0.8.0.dev0"}
+        if previous.get("schema")!="maomi.run.v1" or previous.get("maomi_version",__version__) not in compatible_versions:
             raise ValueError("Resume with the MaoMi version that created this run")
         if settings is not None and asdict(settings) != previous["settings"]:
             raise ValueError("RunConfig differs from the saved run")
@@ -192,6 +195,12 @@ def run_scene(scene=None, *, settings=None, optics=None, rana=None, motion=None,
         if path is not None:
             if path.exists():
                 raise FileExistsError("Choose a new output folder or resume the existing run")
+        timing = None
+        if scene.scan.get("timing") is not None:
+            from ._timed_movie import timing_metadata
+            timing = timing_metadata(scene.scan, scene.shape, scene.spikes.get("dt", 1/30))
+            if motion is not None:
+                raise ValueError("Timed acquisition uses timing.velocity_voxels_s; omit legacy motion records")
         optics = _scene_optics(scene, settings, optics, rana, device, optical_options)
         p = dict(scan_buff=10,scan_avg=2,sfrac=2,motion=True,zoffset=0)
         p.update(scene.scan)
@@ -199,7 +208,7 @@ def run_scene(scene=None, *, settings=None, optics=None, rana=None, motion=None,
         depths = {c["rana"].kernel_shape[2] if c.get("rana") is not None else c["psf"].shape[2] for c in channels}
         if len(depths) != 1:
             raise ValueError("All channels must share the acquisition depth")
-        if motion is None:
+        if motion is None and timing is None:
             motion = sample_motion(scene.shape,next(iter(depths)),scene.activity["soma"].shape[1],
                 buffer=int(p["scan_buff"]),zoffset=p["zoffset"],enabled=p["motion"],
                 rng=np.random.default_rng(settings.seed))
@@ -216,6 +225,8 @@ def run_scene(scene=None, *, settings=None, optics=None, rana=None, motion=None,
                             targets=dict(clean="expected acquisition including motion and background",
                                          noisy="detector observation",density="latent fluorescence",
                                          cells="one-based sparse component labels"))
+            if timing is not None:
+                previous["acquisition_timing"] = timing
             (path/"run.json").write_text(json.dumps(jsonable(previous),indent=2,allow_nan=False),encoding="utf8")
     scan = dict(scene.scan,chunk_frames=settings.chunk_frames)
     args = (scene.neurons,optics,scene.activity,scan,scene.noise,scene.spikes,scene.tpm)

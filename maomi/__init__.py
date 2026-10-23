@@ -5,10 +5,11 @@ NAOMi-derived tissue, propagation or acquisition implementations.
 """
 from importlib import import_module
 
-__version__ = "0.8.0.dev0"
+__version__ = "0.8.0b1"
 __author__ = "Yueze Wang"
 
 _EXPORTS = {
+    "AcquisitionClock": "acquisition", "ExposurePlan": "acquisition",
     "zstack": "scanning", "OpticalConfig": "optics", "run_fixed": "fixed",
     "make_pupil": "pupils", "make_vtwins_pupils": "pupils", "simulate": "runtime",
     "FullFieldPSF": "rana", "CubicFullFieldRenderer": "rana",

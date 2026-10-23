@@ -1,5 +1,8 @@
 name: Public package checks
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 jobs:
   cpu:
     strategy:
@@ -32,6 +35,10 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: python -m maomi run --config examples/scene.json --output artifacts/ci_scene --max-frames 3
       - run: python -m maomi resume artifacts/ci_scene
+      - run: python -m maomi run --demo --config examples/timed_acquisition.json --output artifacts/ci_timed --max-frames 3
+      - run: python -m maomi resume artifacts/ci_timed
+      - run: python -m maomi run --demo --config examples/timed_acquisition.json --rana --output artifacts/ci_timed_rana --max-frames 3
+      - run: python -m maomi resume artifacts/ci_timed_rana
       - run: python examples/rayoptics_movie.py --output artifacts/ci_rayoptics_movie
       - run: python examples/rana_movie.py --rana --output artifacts/ci_rana_movie
       - run: python examples/rana_movie.py --rana --physics --nuclear --output artifacts/ci_rana_physics_movie

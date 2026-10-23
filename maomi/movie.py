@@ -143,6 +143,8 @@ def detector_noise(clean, parameters=None, *, draws=None, rng=None):
     p = {"mu": 100.0, "mu0": 0.0, "sigma": 2300.0, "sigma0": 2.7, "darkcount": 0.05}
     if parameters is not None:
         p.update(parameters)
+    if not np.isfinite([p[k] for k in ("mu", "mu0", "sigma", "sigma0", "darkcount")]).all():
+        raise ValueError("Detector parameters must be finite")
     clean = np.asarray(clean, float)
     if not np.isfinite(clean).all() or np.any(clean + p["darkcount"] < 0):
         raise ValueError("Poisson rate must be finite and nonnegative")
@@ -498,6 +500,12 @@ def iter_scan_volume(
         frame_seed=frame_seed,
         )
         return
+    if (scan or {}).get("timing") is not None:
+        from ._timed_movie import iter_timed_volume
+        yield from iter_timed_volume(neurons, optics, activity, scan, noise, spikes,
+            motion=motion, noise_draws=noise_draws, bleed_uniforms=bleed_uniforms,
+            rng=rng, add_noise=add_noise, start_frame=start_frame, frame_seed=frame_seed)
+        return
     started = time.perf_counter()
     p = {"scan_buff": 10, "scan_avg": 2, "sfrac": 2, "motion": True, "zoffset": 0}
     p.update(scan or {})
@@ -767,7 +775,7 @@ def _iter_multibeam(
     if len(depths) != 1:
         raise ValueError("Beams must share focal depth and acquisition geometry")
     rng = np.random.default_rng() if rng is None else rng
-    if motion is None:
+    if motion is None and p.get("timing") is None:
         motion = sample_motion(
             shape,
             next(iter(depths)),

@@ -2,6 +2,10 @@
 
 Use `maomi` or `python -m maomi`. They invoke the same parser.
 
+For within-frame motion and explicit sample times, set `acquisition.timing` in
+the existing JSON configuration. The same `run` command works with or without
+`--rana`; see [time-resolved acquisition](TIME_RESOLVED_ACQUISITION.md).
+
 | Command | Purpose | Output |
 | --- | --- | --- |
 | `run` | Complete time-dependent acquisition | Paired clean/noisy frame chunks, source tissue and GT |

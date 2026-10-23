@@ -37,7 +37,7 @@ Julia: [pinned snapshot, 17 May 2026](https://github.com/JuliaNeuroscience/NAOMi
 | Original NAOMi MAT | Direct v5/v7.3 import, lazy input and ROI-safe sparse indices. |
 | RayOptics / wave solvers | XYZ multiphoton fields and pupil coupling to native tissue scattering. |
 | RANA physics | Layered vector fields, polarization, voxel/scan dwell, dispersion and spectra. |
-| Cells and paired data | Tissue presets, resumable movies, activity, cell labels and latent GT. |
+| Cells and paired data | Tissue presets, within-frame timing, resumable movies and latent GT. |
 
 
 Global cubic RBF reference control (256 x 256 x 16): 0.1030% full-volume difference from higher quadrature; CPU/CUDA rendering 0.206/0.088 s (2.3x). PSF construction: 23.42 s CPU, measured separately.

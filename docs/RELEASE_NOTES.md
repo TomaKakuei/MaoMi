@@ -1,3 +1,31 @@
+# MaoMi 0.8.0b1 — Open Beta 1 — 23 October 2026
+
+- First tagged Open Beta: accelerated Standard optics, independent RANA core,
+  external PSF providers, original MAT inputs and resumable paired movies.
+- Includes time-resolved acquisition, a 512-pixel motion comparison and the
+  shared English command/API/architecture guides.
+- Existing `0.8.0.dev0` movie archives can resume in this beta; unknown versions
+  remain rejected. The package distribution is still `maomi-optics-preview`,
+  with the public command and import both named `maomi`.
+- Source ZIP, wheel, overview, timing comparison and SHA-256 checksums are
+  available in the GitHub prerelease. See [installation](GITHUB_RELEASE.md).
+
+# Time-resolved acquisition - 22 October 2026
+
+- Optional `acquisition.timing` uses explicit raster, rolling or global sample
+  times through the same Standard/RANA movie commands and resume workflow.
+- Activity and fluorescence motion enter the optical calculation before
+  integration; complete local PSFs remain in use in RANA. Detector noise is
+  sampled once after temporal integration and incoherent beam summation.
+- Declared PSF dwell factors are converted to rates, avoiding double exposure.
+- Stationary unchanged scenes reuse their optical image; temporal integration
+  streams snapshots rather than keeping a temporal image cube in memory.
+- Frame timestamps and timing conventions are stored with the paired data.
+- Added a 512-pixel moving-cell comparison, separate field/ROI metrics, temporal
+  refinement, analytic timing tests, and CPU/CUDA and resume checks.
+- Existing acquisition stays the default. See the
+  [time-resolved guide](TIME_RESOLVED_ACQUISITION.md).
+
 # RANA provider and backend boundaries - 20 October 2026
 
 - External optical providers implement `build_field()`; the same field can

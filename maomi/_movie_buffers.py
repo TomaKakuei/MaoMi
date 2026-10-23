@@ -53,6 +53,25 @@ class ActivitySource:
             v[v < .01] = 0
         return [delta[0],np.empty(0,np.float32),delta[1],delta[2]]
 
+    def at_time(self, frame_position):
+        """Raw activity interpolated at a fractional frame, with endpoint hold.
+
+        Timed acquisition has no activity cutoff or minimum subtraction.
+        Reads stay bounded by chunk_frames, including across chunk boundaries.
+        """
+        if not np.isfinite(frame_position):
+            raise ValueError("Activity time must be finite")
+        position = float(np.clip(frame_position, 0, self.frames-1))
+        lo = int(np.floor(position))
+        hi = min(lo+1, self.frames-1)
+        def column(t):
+            start = t//self.chunk_frames*self.chunk_frames
+            if start != self._start:
+                self._start, self._block = start, self._read(start)
+            return [v[:,t-start] for v in self._block]
+        a, b = column(lo), column(hi)
+        return [x+(position-lo)*(y-x) for x,y in zip(a,b)]
+
 
 def _fill(buffer, indices, values, offsets, additive, amplitudes):
     for j in range(len(amplitudes)):

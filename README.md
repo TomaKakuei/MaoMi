@@ -2,6 +2,10 @@
 
 **Modular anatomy and optics for Microscopy.** Faster simulation, open optics, programmable ground truth.
 
+**Open Beta 1 · 0.8.0b1** — [Download](https://github.com/TomaKakuei/MaoMi/releases/tag/v0.8.0-beta.1)
+· [Install and start](docs/GITHUB_RELEASE.md)
+· [Report an issue](https://github.com/TomaKakuei/MaoMi/issues/new/choose)
+
 **Author: Yueze Wang**
 
 MaoMi = **M**odular **a**natomy and **o**ptics for **Mi**croscopy.
@@ -56,6 +60,7 @@ source comparison, with no Julia timing claim.
 | RayOptics / wave solvers | XYZ multiphoton fields, portable PSF banks and pupil coupling to tissue scattering |
 | RANA physics | Layered vector fields, polarization, voxel/scan dwell, dispersion and spectra |
 | Cells and paired data | Tissue presets, activity, resumable clean/noisy movies, cell labels and latent GT |
+| Time-resolved acquisition | Explicit raster/global/rolling clocks, within-frame activity and specimen motion, recorded timestamps |
 
 Install from the checkout and run a complete small example:
 
@@ -94,6 +99,12 @@ In Python, use `run_scene` / `render_scene` with `RunConfig(rana=True)`;
 custom providers use `RanaAddon(field=...)`. Both operations share optical
 preparation. See [commands and migration](docs/CLI.md), [workflow guide](docs/WORKFLOWS.md),
 [RANA](docs/RANA_MODE.md), [PSF interfaces](docs/PSF_INTERFACE.md) and [API](docs/API.md).
+
+For motion during a scan, add `acquisition.timing` to the same configuration.
+The [time-resolved workflow and 512-pixel comparison](docs/TIME_RESOLVED_ACQUISITION.md)
+integrate changing photon rates before detector noise, with one common frame
+midpoint and complete local PSFs in RANA. The existing acquisition remains the
+default when this optional section is omitted.
 
 The [global cubic RBF reference comparison](docs/RANA_COMPARISON.md)
 (256 x 256 x 16) records 0.1030% difference from higher quadrature,

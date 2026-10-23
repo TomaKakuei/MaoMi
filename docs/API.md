@@ -2,6 +2,13 @@
 
 ## Complete scene workflow
 
+`AcquisitionClock` and `ExposurePlan` provide independent photon-rate integration.
+Set `Scene.scan['timing']` to use the same timing in `run_scene`, or supply your
+own instantaneous renderer to `ExposurePlan.integrate`. See the
+[time-resolved acquisition guide](TIME_RESOLVED_ACQUISITION.md).
+`maomi.comparison.compare_images` reports original-unit full-field and ROI
+differences without fitting alignment or gain.
+
 `Scene`, `load_naomi_mat`, `RunConfig`, `run_scene` and `render_scene` connect imported or
 generated source tissue to standard/RANA acquisition on CPU/CUDA.
 `prepare_optics` and `render_static` separate propagation from rendering;
