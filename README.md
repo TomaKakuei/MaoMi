@@ -1,190 +1,130 @@
 # MaoMi
 
-**Modular anatomy and optics for Microscopy.** Faster simulation, open optics, programmable ground truth.
+**Modular Anatomy and Optics for Microscopy** — Faster simulation, open optics, programmable ground truth.
 
-**Open Beta 1 · 0.8.0b1** — [Download](https://github.com/TomaKakuei/MaoMi/releases/tag/v0.8.0-beta.1)
-· [Install and start](docs/GITHUB_RELEASE.md)
-· [Four-page report](docs/MaoMi_RANA_4Page_Report_EN.pdf)
-· [Report an issue](https://github.com/TomaKakuei/MaoMi/issues/new/choose)
+**Open Beta 1 · `0.8.0b1`** — [Download](#) · [Install and start](#3-capabilities-and-quickstart) · [Four-page report](#) · [Report an issue](#)  
+**Author:** Yueze Wang  
+Built on [NAOMi (Neural Anatomy and Optical Microscopy)](https://doi.org/10.1016/j.jneumeth.2021.109173) by Song et al. (2021). See [citation and upstream credit](#license-citation-and-upstream-credit).
 
-**Author: Yueze Wang**
+---
 
-MaoMi = **M**odular **a**natomy and **o**ptics for **Mi**croscopy.
+## 1. Speed and Implementation Comparison
 
-Built on **NAOMi (Neural Anatomy and Optical Microscopy)** by Song et al. (2021).
-See [citation and upstream credit](#citation-and-upstream-credit).
+**49.1× measured optical-stage acceleration** with **0.00667% full-volume relative L2 difference** from the original MATLAB implementation.
 
-## 1. Speed
+| Implementation | Propagation Sites | Optical-Stage Time | Execution Backend | Native Tissue Optics |
+| :--- | :---: | :---: | :--- | :--- |
+| **Original MATLAB (`NAOMi-Sim`)** | 4,225 | 179.644 s | CPU | Scattering and multiple excitation modes |
+| **MaoMi Standard** | 4,225 | **3.662 s** | Batched CUDA (`batch=8`) | Scattering and multiple excitation modes |
+| **`NAOMi.jl`** *(source snapshot)* | — | — | CPU / FFTW | Cortical driver deferred; Gaussian example |
 
-**49.1× measured optical-stage acceleration. 0.00667% full-volume relative L2 difference from MATLAB.**
+**Benchmark configuration:**
+* **Volume & sites:** 512 × 512 × 60 tissue volume, scattering input, pupil function, and 65 × 65 (4,225) propagation sites.
+* **Hardware & protocol:** AMD Ryzen 9 7950X, NVIDIA RTX 3080, median of 3 serial calls (CUDA batch size 8).
+* **Scope:** Optical stage includes phase preparation, wave propagation, both tails, and mask assembly (excludes input generation, static scanning, startup, and I/O). See the four-page report for component-level benchmarks.
 
-| Implementation | Propagation sites | Optical-stage time |
-| --- | --- | --- |
-| Original MATLAB CPU | 4225 | 179.644 s |
-| MaoMi Standard CUDA | 4225 | 3.662 s |
+---
 
+## 2. RANA (Ray-Aware Nonuniform Acquisition)
 
-Same 512 x 512 x 60 tissue, scattering input, pupil and 4225 sites. Full-volume relative L2: 0.00667%. Three serial calls, median; Ryzen 9 7950X / RTX 3080, CUDA batch 8. Optical stage includes phase preparation, propagation, both tails and mask assembly; input generation, static scanning, startup and I/O excluded. Standard-mode comparison, measured 19 October 2026 UTC.
+While default MaoMi reproduces MATLAB-compatible optics, passing `--rana` enables **RANA**: a modular optical engine (`maomi/rana/`) that propagates complete, spatially varying local PSFs across the entire field of view.
 
-The [26 October report](docs/MaoMi_RANA_4Page_Report_EN.pdf) adds component
-benchmarks, cross-domain examples and controlled RANA comparisons. The 49.1×
-result measures this matched optical stage, not end-to-end movie generation.
+### Modeled Physical Effects & Numerical Convergence
+Composable RANA providers model four primary physical effects:
+1. Refractive-index mismatch and depth-dependent aberration
+2. High-NA vectorial diffraction
+3. Finite-voxel and scan-dwell integration
+4. Coherent ultrashort pulse and spectral response
 
-## 2. RANA and extensibility
+* **Ablation impact (256 × 256 × 16 volume, NA 1.1, specimen/immersion index 1.38/1.33, depth 50–62 µm):** Removing all four physical extensions alters the simulated volume by **30.31%**.
+* **Field-dependence impact (1024² photon image):** Replacing a 5 × 5 spatially varying HCIPy PSF bank with its spatial mean changes the final image by **12.52%**.
+* **Quadrature convergence & RBF reference:** Full RANA differs by **0.1030%** from higher-order numerical quadrature. On the 256 × 256 × 16 benchmark, the global cubic RBF reference operator requires 23.42 s for CPU PSF construction and renders in **0.206 s (CPU) / 0.088 s (CUDA)** (distinct from the compact positive cubic interpolator used in the default acquisition pipeline).
 
-**One workflow, one RANA switch.** Add `--rana` to the same `run` or `render`
-command. Inputs, acquisition settings, outputs and movie resume work the same
-way. Default MaoMi uses MATLAB-compatible optics; **RANA (Ray Aware Nonuniform
-Acquisition)** uses complete local PSFs throughout the field of view.
+### Architecture & External Optical Solvers
+RANA's field representation, physics modules, and renderer reside in `maomi/rana/` and connect to MaoMi's anatomy and acquisition pipeline via an adapter. External optical packages—such as **RayOptics** and **HCIPy**—or custom solvers can inject focal fields directly by implementing the PSF provider protocol without modifying core MaoMi code.
 
-**RANA carries local optics and acquisition detail into the predicted image.**
-Composable providers retain refractive-index/depth aberration, high-NA vectorial
-optics, finite-voxel/scan integration and coherent pulse/spectral response.
-In the [controlled 256 × 256 × 16 comparison](docs/RANA_COMPARISON.md)
-(NA 1.1, specimen/immersion index 1.38/1.33, depth 50–62 µm), removing all four
-extensions changes the full volume by **30.31%**. Full RANA differs by **0.1030%**
-from finer numerical quadrature. These quantify modeled effects and convergence;
-accuracy against measured data remains to be established.
+---
 
-The practical advantage is connecting resolved optics to the specimen, activity,
-exposure and detector in one forward experiment. Optical packages such as
-RayOptics and HCIPy can supply fields or independent references. In the report's
-separate RANA-X example, replacing the same 5 × 5 HCIPy PSF field with its mean
-kernel changes the 1024² photon image by **12.52%**: retaining field dependence
-matters even when the optical solver is unchanged.
+## 3. Capabilities and Quickstart
 
-RANA has its own [development core](docs/ARCHITECTURE.md) in `maomi/rana/`.
-Its fields, physics and renderer can run independently; a dedicated adapter
-connects them to MaoMi's current anatomy and acquisition pipeline.
+| Module | Supported Capabilities |
+| :--- | :--- |
+| **NAOMi `.mat` Compatibility** | MATLAB v5/v7.3 import, lazy loading, ROI-safe sparse indexing, imported neural activity traces |
+| **External Wave & Ray Solvers** | XYZ multiphoton focal fields, portable `.npz` PSF banks, pupil coupling to tissue scattering |
+| **RANA Physics** | Layered vector diffraction, polarization, voxel/scan dwell integration, dispersion, spectral weighting |
+| **Specimen & Activity** | Tissue presets, 3D cell geometry, custom fluorescence kinetics |
+| **Time-Resolved Acquisition** | Explicit raster/global/rolling shutter clocks, intra-frame motion and activity integration prior to detector noise, recorded timestamps |
+| **Detector & Ground Truth** | Paired clean/noisy readouts, resumable movie generation, cell labels, latent ground truth for restoration/reconstruction |
 
-New solvers implement the [PSF provider protocol](docs/PROVIDERS.md) without
-changing MaoMi. Numerical fields, acquisition logic and CPU/CUDA backends have
-separate responsibilities.
+### Installation & CLI Usage
 
-| Area | MaoMi | NAOMi.jl |
-| --- | --- | --- |
-| Execution | Batched CUDA propagation | CPU / FFTW |
-| Native tissue optics | Scattering and multiple excitation modes | Cortical driver deferred; Gaussian example |
+Requires **Python 3.11+** (Windows/Linux CI covers 3.11 and 3.12). The `[optics]` extra pins `rayoptics==0.9.5` and `opticalglass>=1.1,<2.0`. CUDA acceleration requires a CUDA-enabled PyTorch build and CuPy (`python -m pip install ".[cuda]"`).
 
-Julia: [pinned snapshot, 17 May 2026](https://github.com/JuliaNeuroscience/NAOMi.jl/tree/b657ac7cd1416af0274a25a3c230b21429da4d7f);
-source comparison, with no Julia timing claim.
-
-## 3. Connections and capabilities
-
-| Connection | Available now |
-| --- | --- |
-| Original NAOMi MAT files | v5/v7.3 import, lazy input, ROI-safe sparse indices and imported activity |
-| RayOptics / wave solvers | XYZ multiphoton fields, portable PSF banks and pupil coupling to tissue scattering |
-| RANA physics | Layered vector fields, polarization, voxel/scan dwell, dispersion and spectra |
-| Specimen and activity | Tissue presets, cell geometry and imported activity traces feeding the same imaging workflow |
-| Detector and paired data | Clean signal and noisy readout, resumable movies, cell labels and latent ground truth for restoration and reconstruction |
-| Time-resolved acquisition | Explicit raster/global/rolling clocks, within-frame activity and specimen motion, recorded timestamps |
-
-Install from the checkout and run a complete small example:
-
-```sh
+```bash
+# Install core package with MAT import, tissue generation, and examples
 python -m pip install ".[mat,tissue,examples]"
-# Standard MaoMi
+
+# 1. Standard NAOMi-compatible simulation (3x3 sites in example; 65x65 default)
 python -m maomi run --config examples/scene.json --output artifacts/standard
-# Same scene, activity, acquisition and output format, with RANA
+
+# 2. Enable RANA spatially varying optics (--device cpu|cuda|auto)
 python -m maomi run --config examples/scene.json --rana --output artifacts/rana
-# Static images use the same inputs and the same switch
+
+# 3. Render static images or resume interrupted runs
 python -m maomi render --config examples/scene.json --rana --output artifacts/static
-# Resume restores the saved optics and settings automatically
 python -m maomi resume artifacts/rana
-```
 
-The installed `maomi` command is equivalent to `python -m maomi`.
-`maomi --help` lists **run, render, resume and inspect**.
-The small example uses 3x3 optical sites; regular runs default to 65x65.
-Select `--device cpu` or `--device cuda`; `auto` selects available CUDA with CuPy.
-CUDA requires CUDA-enabled PyTorch and `python -m pip install ".[cuda]"`.
-
-Native RANA retains the propagated local kernels automatically. To supply your
-own focal optics, add `--psf-field bank.npz` to the same command. Fields must
-contain complete XYZ kernels, match the voxel pitch and cover the whole FOV.
-Depth banks must also cover the acquisition depths.
-
-```sh
+# 4. Inspect and run directly from original NAOMi .mat datasets
 python -m maomi inspect source_tissue.mat
 python -m maomi run --input source_tissue.mat --frames 300 --rana --output artifacts/imported
-python -m maomi run --demo --config examples/rana_physics.json --rana --output artifacts/physics
+
+# 5. Supply custom external 3D PSF banks (must match voxel pitch and FOV/depth range)
+python -m maomi run --config examples/scene.json --rana --psf-field bank.npz --output artifacts/custom_psf
+
+# 6. Run RANA vectorial/dispersive physics and RayOptics integration examples
 python -m pip install ".[optics,mat]"
+python -m maomi run --demo --config examples/rana_physics.json --rana --output artifacts/physics
 python examples/rayoptics_movie.py --route field --output artifacts/ray_movie
 ```
 
-In Python, use `run_scene` / `render_scene` with `RunConfig(rana=True)`;
-custom providers use `RanaAddon(field=...)`. Both operations share optical
-preparation. See [commands and migration](docs/CLI.md), [workflow guide](docs/WORKFLOWS.md),
-[RANA](docs/RANA_MODE.md), [PSF interfaces](docs/PSF_INTERFACE.md) and [API](docs/API.md).
+*(Note: The installed `maomi` CLI command is equivalent to `python -m maomi`.)*
 
-For motion during a scan, add `acquisition.timing` to the same configuration.
-The [time-resolved workflow and 512-pixel comparison](docs/TIME_RESOLVED_ACQUISITION.md)
-integrate changing photon rates before detector noise, with one common frame
-midpoint and complete local PSFs in RANA. The existing acquisition remains the
-default when this optional section is omitted.
+### Python API & Time-Resolved Scanning
 
-The [global cubic RBF reference comparison](docs/RANA_COMPARISON.md)
-(256 x 256 x 16) records 0.1030% difference from higher quadrature,
-0.206/0.088 s CPU/CUDA rendering and 23.42 s CPU PSF construction.
-This reference operator is distinct from the compact positive cubic
-interpolator used by the shared acquisition workflow.
+Use `run_scene` or `render_scene` with `RunConfig(rana=True)`, or pass custom optical field providers via `RanaAddon(field=...)`. To model intra-frame specimen motion or fast activity during scanning, add an `acquisition.timing` block to your scene configuration.
 
-Python 3.11+; Windows/Linux CPU CI covers 3.11 and 3.12. The optics extra pins
-RayOptics 0.9.5 with `opticalglass>=1.1,<2`.
-See the [one-page overview](docs/TECHNICAL_REPORT.pdf) and [release notes](docs/RELEASE_NOTES.md).
-The [four-page report](docs/MaoMi_RANA_4Page_Report_EN.pdf) covers speed,
-connections beyond optics, RANA comparisons and positioning among existing simulators.
-Original datasets: **[NAOMi on OSF](https://osf.io/863j9/)**
-([files](https://osf.io/863j9/files/), [usage guide](docs/DATASETS.md)).
+See the documentation for [Commands and migration](#), [Workflow guide](#), [RANA](#), [PSF interfaces](#), and [API reference](#). Original datasets: [NAOMi on OSF](#).
 
-## 4. What's next
+---
 
-**RANA is the primary development direction for new optical capabilities.**
-MaoMi builds on NAOMi's anatomy and microscopy foundation. RANA develops
-complementary optics and acquisition models through a modular core, preserving
-NAOMi compatibility, attribution and one user workflow.
+## 4. Roadmap and RANA-X Extensions
 
-Extend editable 3-D cells and dynamics, connect more optics and acquisition
-models, and calibrate simulations against real data. Generate programmable
-ground truth for denoising and reconstruction, from custom cells through
-optics to clean/noisy observations.
+### MaoMi Roadmap
+* Expand editable 3D cell morphologies and temporal dynamics.
+* Calibrate forward optical and detector models against experimental two-photon datasets.
+* Generate programmable ground truth for denoising and 3D reconstruction, from custom cells through optics to paired clean/noisy observations.
 
-**Beyond microscopy: demonstrated in independent RANA-X development.**
-RANA-X 0.1.0.dev1 connects named physical quantities, models and solvers while
-retaining acquisition, state, noise and export. The report includes these
-executed examples; they are separate from the MaoMi 0.8.0b1 package.
+### Beyond Microscopy: `RANA-X` (`0.1.0.dev1`)
+Evaluated alongside MaoMi in the four-page technical report, **RANA-X** generalizes RANA's forward acquisition, state management, and noise pipeline to broader multiphysics and optical domains (maintained separately from the `maomi 0.8.0b1` package):
 
-| Connection | Executed example |
-| --- | --- |
-| Biological and molecular response | Calcium kinetics, bleaching/FRAP and fluorescence lifetime gates |
-| Optothermal materials | Temperature-dependent absorption coupled to heat balance; replace the cooling model and solver |
-| Coatings and biosensing | Thickness, wavelength and analyte-index sweeps for reflection and plasmon response |
-| Infrared detectors and camera electronics | Temperature/emissivity to black-phosphorus detector current; QE, charge, noise, gain and ADC readout |
-| Electron microscopy | 200 keV elastic multislice through prescribed potentials using electron-wave and probability quantities |
+| Domain | Executed Forward Model | Key Verification / Performance Metric |
+| :--- | :--- | :--- |
+| **Biological & Molecular Response** | Calcium kinetics, photobleaching/FRAP, fluorescence lifetime gates | Coupled state-space readout |
+| **Optothermal Materials** | Temperature-dependent absorption coupled to heat balance | Matches independent heat-balance roots to 1.4 × 10⁻⁹ K across 40 steps (5.75 K, 8.58 K, 1.07 K at 0.4 s); bitwise-exact resume |
+| **Coatings & Biosensing** | Thickness, wavelength, and analyte-index sweeps for reflection and plasmon response | **221.7×** faster on a 32,768-case reflectance sweep vs. scalar `tmm` API loops while computing internal-layer quantities |
+| **Wave Propagation** | Prepared 1024² wave propagation | **1.18×** faster than cached `TorchOptics` control (**2.89×** vs. public API calls) |
+| **IR Detectors & Readout** | Temperature/emissivity to black-phosphorus detector current, QE, charge, noise, gain, and ADC | End-to-end sensor electronics chain |
+| **Electron Microscopy** | 200 keV elastic multislice propagation through prescribed potentials | Electron-wave and probability quantities |
 
-For the thermal example, changing the material equations gives temperature rises
-of **5.75 K, 8.58 K and 1.07 K** at 0.4 s; all 40-step traces agree with independent
-heat-balance roots to **1.4 × 10⁻⁹ K**, and resume reproduces all five output arrays
-bitwise. These are illustrative physical models.
+---
 
-New RANA-X component timings also show where reuse helps: prepared 1024² wave
-propagation is **1.18×** faster than a cached TorchOptics control (**2.89×** versus
-public calls); a 32,768-case coating sweep is **221.7×** faster than a tmm scalar-API
-loop for the same reflectance observable. The latter also computes internal-layer
-quantities. These are bounded component comparisons, with settings and numerical
-agreement in the report, rather than rankings of complete simulators.
+## License, Citation, and Upstream Credit
 
-MIT licensed. See [source attribution](THIRD_PARTY_NOTICES.md).
+MIT licensed. See [source attribution](#), `THIRD_PARTY_NOTICES.md`, and `LICENSES/NAOMi-MIT.txt`.
 
-### Citation and upstream credit
+Please cite the original NAOMi paper when using MaoMi in research, alongside this repository and its release tag or commit:
 
-Please cite the original NAOMi paper when using MaoMi in research:
-
-> Song, A., Gauthier, J. L., Pillow, J. W., Tank, D. W., & Charles, A. S. (2021).
-> Neural anatomy and optical microscopy (NAOMi) simulation for evaluating calcium imaging methods.
-> *Journal of Neuroscience Methods*, **358**, 109173.
-> [doi:10.1016/j.jneumeth.2021.109173](https://doi.org/10.1016/j.jneumeth.2021.109173)
+> Song, A., Gauthier, J. L., Pillow, J. W., Tank, D. W., & Charles, A. S. (2021). Neural anatomy and optical microscopy (NAOMi) simulation for evaluating calcium imaging methods. *Journal of Neuroscience Methods*, 358, 109173. doi:10.1016/j.jneumeth.2021.109173
 
 ```bibtex
 @article{song2021naomi,
@@ -197,9 +137,3 @@ Please cite the original NAOMi paper when using MaoMi in research:
   doi     = {10.1016/j.jneumeth.2021.109173}
 }
 ```
-
-Original MATLAB implementation: [NAOMi-Sim](https://bitbucket.org/adamshch/naomi_sim/).
-To identify the MaoMi implementation used, also report
-[this repository](https://github.com/TomaKakuei/MaoMi) and its release tag or commit.
-Upstream notices and licensing are retained in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
-and [LICENSES/NAOMi-MIT.txt](LICENSES/NAOMi-MIT.txt).
