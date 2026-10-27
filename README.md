@@ -2,7 +2,7 @@
 
 **Modular Anatomy and Optics for Microscopy** — Faster simulation, open optics, programmable ground truth.
 
-**Open Beta 1 · `0.8.0b1`** — [Download](#) · [Install and start](#3-capabilities-and-quickstart) · [Four-page report](#) · [Report an issue](#)  
+**Open Beta 1 · `0.8.0b1`** — [Download](https://github.com/TomaKakuei/MaoMi/releases/tag/v0.8.0-beta.1) · [Install and start](#3-capabilities-and-quickstart) · [Four-page report](docs/MaoMi_RANA_4Page_Report_EN.pdf) · [Report an issue](https://github.com/TomaKakuei/MaoMi/issues/new/choose)<br>
 **Author:** Yueze Wang  
 Built on [NAOMi (Neural Anatomy and Optical Microscopy)](https://doi.org/10.1016/j.jneumeth.2021.109173) by Song et al. (2021). See [citation and upstream credit](#license-citation-and-upstream-credit).
 
@@ -21,7 +21,7 @@ Built on [NAOMi (Neural Anatomy and Optical Microscopy)](https://doi.org/10.1016
 **Benchmark configuration:**
 * **Volume & sites:** 512 × 512 × 60 tissue volume, scattering input, pupil function, and 65 × 65 (4,225) propagation sites.
 * **Hardware & protocol:** AMD Ryzen 9 7950X, NVIDIA RTX 3080, median of 3 serial calls (CUDA batch size 8).
-* **Scope:** Optical stage includes phase preparation, wave propagation, both tails, and mask assembly (excludes input generation, static scanning, startup, and I/O). See the four-page report for component-level benchmarks.
+* **Scope:** Optical stage includes phase preparation, wave propagation, both tails, and mask assembly (excludes input generation, static scanning, startup, and I/O). See the four-page report for the matched-image comparison.
 
 ---
 
@@ -37,11 +37,10 @@ Composable RANA providers model four primary physical effects:
 4. Coherent ultrashort pulse and spectral response
 
 * **Ablation impact (256 × 256 × 16 volume, NA 1.1, specimen/immersion index 1.38/1.33, depth 50–62 µm):** Removing all four physical extensions alters the simulated volume by **30.31%**.
-* **Field-dependence impact (1024² photon image):** Replacing a 5 × 5 spatially varying HCIPy PSF bank with its spatial mean changes the final image by **12.52%**.
 * **Quadrature convergence & RBF reference:** Full RANA differs by **0.1030%** from higher-order numerical quadrature. On the 256 × 256 × 16 benchmark, the global cubic RBF reference operator requires 23.42 s for CPU PSF construction and renders in **0.206 s (CPU) / 0.088 s (CUDA)** (distinct from the compact positive cubic interpolator used in the default acquisition pipeline).
 
 ### Architecture & External Optical Solvers
-RANA's field representation, physics modules, and renderer reside in `maomi/rana/` and connect to MaoMi's anatomy and acquisition pipeline via an adapter. External optical packages—such as **RayOptics** and **HCIPy**—or custom solvers can inject focal fields directly by implementing the PSF provider protocol without modifying core MaoMi code.
+RANA's field representation, physics modules, and renderer reside in `maomi/rana/` and connect to MaoMi's anatomy and acquisition pipeline via an adapter. The package includes **RayOptics** examples and an [analytic custom provider](examples/custom_rana_provider.py). Other solvers can supply sampled focal fields through the [PSF provider protocol](docs/PROVIDERS.md).
 
 ---
 
@@ -52,7 +51,7 @@ RANA's field representation, physics modules, and renderer reside in `maomi/rana
 | **NAOMi `.mat` Compatibility** | MATLAB v5/v7.3 import, lazy loading, ROI-safe sparse indexing, imported neural activity traces |
 | **External Wave & Ray Solvers** | XYZ multiphoton focal fields, portable `.npz` PSF banks, pupil coupling to tissue scattering |
 | **RANA Physics** | Layered vector diffraction, polarization, voxel/scan dwell integration, dispersion, spectral weighting |
-| **Specimen & Activity** | Tissue presets, 3D cell geometry, custom fluorescence kinetics |
+| **Specimen & Activity** | Native 3D tissue, editable 2D cell recipes, imported activity traces |
 | **Time-Resolved Acquisition** | Explicit raster/global/rolling shutter clocks, intra-frame motion and activity integration prior to detector noise, recorded timestamps |
 | **Detector & Ground Truth** | Paired clean/noisy readouts, resumable movie generation, cell labels, latent ground truth for restoration/reconstruction |
 
@@ -93,34 +92,22 @@ python examples/rayoptics_movie.py --route field --output artifacts/ray_movie
 
 Use `run_scene` or `render_scene` with `RunConfig(rana=True)`, or pass custom optical field providers via `RanaAddon(field=...)`. To model intra-frame specimen motion or fast activity during scanning, add an `acquisition.timing` block to your scene configuration.
 
-See the documentation for [Commands and migration](#), [Workflow guide](#), [RANA](#), [PSF interfaces](#), and [API reference](#). Original datasets: [NAOMi on OSF](#).
+See the documentation for [Commands and migration](docs/CLI.md), [Workflow guide](docs/WORKFLOWS.md), [RANA](docs/RANA_MODE.md), [PSF interfaces](docs/PSF_INTERFACE.md), and [API reference](docs/API.md). Original datasets: [NAOMi on OSF](https://osf.io/863j9/).
 
 ---
 
-## 4. Roadmap and RANA-X Extensions
+## 4. Roadmap
 
 ### MaoMi Roadmap
 * Expand editable 3D cell morphologies and temporal dynamics.
 * Calibrate forward optical and detector models against experimental two-photon datasets.
 * Generate programmable ground truth for denoising and 3D reconstruction, from custom cells through optics to paired clean/noisy observations.
 
-### Beyond Microscopy: `RANA-X` (`0.1.0.dev1`)
-Evaluated alongside MaoMi in the four-page technical report, **RANA-X** generalizes RANA's forward acquisition, state management, and noise pipeline to broader multiphysics and optical domains (maintained separately from the `maomi 0.8.0b1` package):
-
-| Domain | Executed Forward Model | Key Verification / Performance Metric |
-| :--- | :--- | :--- |
-| **Biological & Molecular Response** | Calcium kinetics, photobleaching/FRAP, fluorescence lifetime gates | Coupled state-space readout |
-| **Optothermal Materials** | Temperature-dependent absorption coupled to heat balance | Matches independent heat-balance roots to 1.4 × 10⁻⁹ K across 40 steps (5.75 K, 8.58 K, 1.07 K at 0.4 s); bitwise-exact resume |
-| **Coatings & Biosensing** | Thickness, wavelength, and analyte-index sweeps for reflection and plasmon response | **221.7×** faster on a 32,768-case reflectance sweep vs. scalar `tmm` API loops while computing internal-layer quantities |
-| **Wave Propagation** | Prepared 1024² wave propagation | **1.18×** faster than cached `TorchOptics` control (**2.89×** vs. public API calls) |
-| **IR Detectors & Readout** | Temperature/emissivity to black-phosphorus detector current, QE, charge, noise, gain, and ADC | End-to-end sensor electronics chain |
-| **Electron Microscopy** | 200 keV elastic multislice propagation through prescribed potentials | Electron-wave and probability quantities |
-
 ---
 
 ## License, Citation, and Upstream Credit
 
-MIT licensed. See [source attribution](#), `THIRD_PARTY_NOTICES.md`, and `LICENSES/NAOMi-MIT.txt`.
+MIT licensed. See [source attribution](THIRD_PARTY_NOTICES.md), `THIRD_PARTY_NOTICES.md`, and `LICENSES/NAOMi-MIT.txt`.
 
 Please cite the original NAOMi paper when using MaoMi in research, alongside this repository and its release tag or commit:
 
